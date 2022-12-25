@@ -39,25 +39,25 @@ Command Line
 
 To run the script, use the following command:
 
-   .. code-block:: batch
+.. code-block:: batch
 
-      gsms.exe [OPTIONS]
+   gsms.exe [OPTIONS]
 
 OPTIONS
 
---apps, -a
-    Specify the sunshine `apps.json` file to update, otherwise we will attempt to use the `apps.json` file from the
+``--apps, -a``
+    Specify the sunshine ``apps.json`` file to update, otherwise we will attempt to use the ``apps.json`` file from the
     default Sunshine installation location.
 
---image_path, -i
+``--image_path, -i``
     Specify the full directory where to copy box art to. If not specified, box art will be copied to
-    `%USERPROFILE%/Pictures/Sunshine`
+    ``%USERPROFILE%/Pictures/Sunshine``
 
---dry_run, -d
-    If set, the `apps.json` file will not be overwritten. Use this flag to preview the changes that would be made
+``--dry_run, -d``
+    If set, the ``apps.json`` file will not be overwritten. Use this flag to preview the changes that would be made
     without committing them.
 
---no_sleep
+``--no_sleep``
     If set, the script will not pause for 10 seconds at the end of the import.
 
 Examples
@@ -65,21 +65,21 @@ Examples
 
 To migrate all Gamestream apps to Sunshine and copy box art images to the default directory:
 
-   .. code-block:: batch
+.. code-block:: batch
 
-      gsms.exe
+   gsms.exe
 
 To migrate all Gamestream apps to Sunshine and copy box art images to a custom directory:
 
-   .. code-block:: batch
+.. code-block:: batch
 
-      gsms.exe --image_path C:\\Users\MyUser\\Photos\\Sunshine
+   gsms.exe --image_path C:\\Users\MyUser\\Photos\\Sunshine
 
 To preview the changes that would be made without actually updating the `apps.json` file:
 
-   .. code-block:: batch
+.. code-block:: batch
 
-      gsms.exe --dry_run
+   gsms.exe --dry_run
 
 Integrations
 ------------
