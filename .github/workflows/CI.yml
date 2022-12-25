@@ -1,0 +1,76 @@
+---
+name: CI
+
+on:
+  pull_request:
+    branches: [master, nightly]
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [master, nightly]
+  workflow_dispatch:
+
+jobs:
+  check_changelog:
+    name: Check Changelog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        if: ${{ github.ref == 'refs/heads/master' || github.base_ref == 'master' }}
+        uses: actions/checkout@v3
+
+      - name: Verify Changelog
+        id: verify_changelog
+        if: ${{ github.ref == 'refs/heads/master' || github.base_ref == 'master' }}
+        # base_ref for pull request check, ref for push
+        uses: LizardByte/.github/actions/verify_changelog@master
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+    outputs:
+      next_version: ${{ steps.verify_changelog.outputs.changelog_parser_version }}
+      last_version: ${{ steps.verify_changelog.outputs.latest_release_tag_name }}
+      release_body: ${{ steps.verify_changelog.outputs.changelog_parser_description }}
+
+  build:
+    runs-on: windows-2019
+    needs: [check_changelog]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          architecture: 'x64'
+
+      - name: Set up Python Dependencies
+        run: |
+          python -m pip install --upgrade pip setuptools
+          python -m pip install -r requirements-dev.txt
+
+      - name: Build pyinstaller package
+        run: |
+          python ./scripts/build.py
+
+      - name: Upload Artifacts
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: GSMS
+          if-no-files-found: error  # 'warn' or 'ignore' are also available, defaults to `warn`
+          path: |
+            ${{ github.workspace }}/dist/gsms.exe
+
+      - name: Create/Update GitHub Release
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/master' }}
+        uses: ncipollo/release-action@v1  # https://github.com/ncipollo/release-action
+        with:
+          name: ${{ needs.check_changelog.outputs.next_version }}
+          tag: ${{ needs.check_changelog.outputs.next_version }}
+          artifacts: "${{ github.workspace }}/dist/gsms.exe"
+          token: ${{ secrets.GH_BOT_TOKEN }}
+          allowUpdates: true
+          body: ${{ needs.check_changelog.outputs.release_body }}
+          discussionCategory: Announcements
