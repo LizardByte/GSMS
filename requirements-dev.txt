@@ -1,0 +1,3 @@
+-r requirements.txt
+flake8==6.0.0
+pyinstaller==5.7.0
