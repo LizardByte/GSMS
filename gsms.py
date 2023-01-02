@@ -5,7 +5,7 @@ gsms.py
 A migration tool for Nvidia Gamestream to Sunshine.
 
 This script updates the `apps.json` file for Sunshine and copies box art images to a specified directory. It reads
-shortcut files (.lnk) from the default Gamestream installation location and adds them to Sunshine as new apps. If an
+shortcut files (.lnk) from a specified directory and adds them to Sunshine as new apps. If an
 app with the same name already exists in Sunshine, it will be skipped.
 
 Usage
@@ -24,6 +24,9 @@ OPTIONS
 --image_path, -i
     Specify the full directory where to copy box art to. If not specified, box art will be copied to
     `%USERPROFILE%/Pictures/Sunshine`
+
+--shortcut_dir, -s
+    Specify a custom shortcut directory. If not specified, `%localappdata%/NVIDIA Corporation/Shield Apps` will be used.
 
 --dry_run, -d
     If set, the `apps.json` file will not be overwritten. Use this flag to preview the changes that would be made
@@ -114,10 +117,19 @@ def main() -> None:
 
     parser.add_argument('--apps', '-a',
                         help='Specify the sunshine `apps.json` file to update, otherwise we will attempt to use the '
-                             '`apps.json` file from the default Sunshine installation location.')
+                             '`apps.json` file from the default Sunshine installation location.',
+                        default=os.path.join(os.environ['programfiles'], 'Sunshine', 'apps.json')
+                        )
     parser.add_argument('--image_path', '-i',
                         help='Specify the full directory where to copy box art to. If not specified, box art will be '
-                             'copied to `%USERPROFILE%/Pictures/Sunshine`')
+                             'copied to `%USERPROFILE%/Pictures/Sunshine`',
+                        default=os.path.join(os.environ['userprofile'], 'Pictures', 'Sunshine')
+                        )
+    parser.add_argument('--shortcut_dir', '-s',
+                        help='Specify a custom shortcut directory. If not specified,'
+                             '`%localappdata%/NVIDIA Corporation/Shield Apps` will be used.',
+                        default=os.path.join(os.environ['localappdata'], 'NVIDIA Corporation', 'Shield Apps')
+                        )
     parser.add_argument('--dry_run', '-d', action='store_true',
                         help='If set, the `apps.json` file will not be overwritten. Use this flag to preview the '
                              'changes that would be made without committing them.')
@@ -126,44 +138,31 @@ def main() -> None:
 
     args = parser.parse_args()
 
-    # select the apps.json file to use
-    if args.apps:
-        apps_file = args.apps
-    else:
-        apps_file = os.path.join(os.environ['programfiles'], 'Sunshine', 'apps.json')
-
-    # select the destination image path
-    if args.image_path:
-        image_path = args.image_path
-    else:
-        image_path = os.path.join(os.environ['userprofile'], 'Pictures', 'Sunshine')
-
     # create the image destination if it doesn't exist
-    os.makedirs(name=image_path, exist_ok=True)
+    os.makedirs(name=args.image_path, exist_ok=True)
 
     count = 0
-    if os.path.isfile(apps_file):
+    if os.path.isfile(args.apps):
         # file exists
-        with open(file=apps_file, mode="r") as f:
+        with open(file=args.apps, mode="r") as f:
             sunshine_apps = json.load(f)
         print('Found apps.json file.')
         print(json.dumps(obj=sunshine_apps, indent=4))
         print('----')
 
-        gs_apps_path = os.path.join(os.environ['localappdata'], 'NVIDIA Corporation', 'Shield Apps')
-        gs_apps = os.listdir(gs_apps_path)
+        gs_apps = os.listdir(args.shortcut_dir)
 
         for gs_app in gs_apps:
             if gs_app.lower().endswith('.lnk'):
                 name = gs_app.rsplit('.', 1)[0]  # split the lnk name by the extension separator
-                shortcut = pylnk3.parse(lnk=os.path.join(gs_apps_path, gs_app))
+                shortcut = pylnk3.parse(lnk=os.path.join(args.shortcut_dir, gs_app))
                 print(f'Found gamestream app: {name}')
                 print(f'working-dir: {shortcut.work_dir}')
                 print(f'path: {shortcut.path}')
 
                 # GFE converts jpg to png, so no reason to handle anything except PNG files
-                src_image = os.path.join(gs_apps_path, 'StreamingAssets', name, 'box-art.png')
-                dst_image = os.path.join(image_path, f'{name}.png')
+                src_image = os.path.join(args.shortcut_dir, 'StreamingAssets', name, 'box-art.png')
+                dst_image = os.path.join(args.image_path, f'{name}.png')
 
                 # if src_image exists and dst_image does not exist
                 if os.path.isfile(src_image) and not os.path.isfile(dst_image):
@@ -190,7 +189,7 @@ def main() -> None:
                         }
                     )
         if not args.dry_run:
-            with open(file=apps_file, mode="w") as f:
+            with open(file=args.apps, mode="w") as f:
                 json.dump(obj=sunshine_apps, indent=4, fp=f)
         print(json.dumps(obj=sunshine_apps, indent=4))
         print('Completed importing Nvidia gamestream games.')

@@ -19,6 +19,20 @@ understanding of using the command line. The script can be run with a variety of
 such as specifying the `apps.json` file to update, the directory where to copy box art images, and whether to preview
 the changes without actually updating the `apps.json` file.
 
+As an alternative option to migrating custom Gamestream apps, you may also migrate any directory containing
+``.lnk`` (shortcut) files. Below is the preferred directory structure of a custom directory. Cover images
+(``box-art.png``) is optional.
+
+.. code-block::
+
+   .
+   ├── A Game.lnk
+   ├── Another Game.lnk
+   └── StreamingAssets
+       ├── A Game
+       │   └── box-art.png
+       └── Another Game
+           └── box-art.png
 
 Usage
 -----
@@ -52,6 +66,10 @@ OPTIONS
 ``--image_path, -i``
     Specify the full directory where to copy box art to. If not specified, box art will be copied to
     ``%USERPROFILE%/Pictures/Sunshine``
+
+``--shortcut_dir, -s``
+    Specify a custom shortcut directory. If not specified, ``%localappdata%/NVIDIA Corporation/Shield Apps``
+    will be used.
 
 ``--dry_run, -d``
     If set, the ``apps.json`` file will not be overwritten. Use this flag to preview the changes that would be made
