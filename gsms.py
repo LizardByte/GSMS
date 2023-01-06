@@ -156,6 +156,7 @@ def main() -> None:
             if gs_app.lower().endswith('.lnk'):
                 name = gs_app.rsplit('.', 1)[0]  # split the lnk name by the extension separator
                 shortcut = pylnk3.parse(lnk=os.path.join(args.shortcut_dir, gs_app))
+                shortcut.work_dir = "" if shortcut.work_dir is None else shortcut.work_dir
                 print(f'Found gamestream app: {name}')
                 print(f'working-dir: {shortcut.work_dir}')
                 print(f'path: {shortcut.path}')
