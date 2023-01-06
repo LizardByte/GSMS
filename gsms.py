@@ -122,12 +122,12 @@ def main() -> None:
                         )
     parser.add_argument('--image_path', '-i',
                         help='Specify the full directory where to copy box art to. If not specified, box art will be '
-                             'copied to `%USERPROFILE%/Pictures/Sunshine`',
+                             'copied to `%%USERPROFILE%%/Pictures/Sunshine`',
                         default=os.path.join(os.environ['userprofile'], 'Pictures', 'Sunshine')
                         )
     parser.add_argument('--shortcut_dir', '-s',
                         help='Specify a custom shortcut directory. If not specified,'
-                             '`%localappdata%/NVIDIA Corporation/Shield Apps` will be used.',
+                             '`%%localappdata%%/NVIDIA Corporation/Shield Apps` will be used.',
                         default=os.path.join(os.environ['localappdata'], 'NVIDIA Corporation', 'Shield Apps')
                         )
     parser.add_argument('--dry_run', '-d', action='store_true',
@@ -156,6 +156,7 @@ def main() -> None:
             if gs_app.lower().endswith('.lnk'):
                 name = gs_app.rsplit('.', 1)[0]  # split the lnk name by the extension separator
                 shortcut = pylnk3.parse(lnk=os.path.join(args.shortcut_dir, gs_app))
+                shortcut.work_dir = "" if shortcut.work_dir is None else shortcut.work_dir
                 print(f'Found gamestream app: {name}')
                 print(f'working-dir: {shortcut.work_dir}')
                 print(f'path: {shortcut.path}')
