@@ -122,12 +122,12 @@ def main() -> None:
                         )
     parser.add_argument('--image_path', '-i',
                         help='Specify the full directory where to copy box art to. If not specified, box art will be '
-                             'copied to `%USERPROFILE%/Pictures/Sunshine`',
+                             'copied to `%%USERPROFILE%%/Pictures/Sunshine`',
                         default=os.path.join(os.environ['userprofile'], 'Pictures', 'Sunshine')
                         )
     parser.add_argument('--shortcut_dir', '-s',
                         help='Specify a custom shortcut directory. If not specified,'
-                             '`%localappdata%/NVIDIA Corporation/Shield Apps` will be used.',
+                             '`%%localappdata%%/NVIDIA Corporation/Shield Apps` will be used.',
                         default=os.path.join(os.environ['localappdata'], 'NVIDIA Corporation', 'Shield Apps')
                         )
     parser.add_argument('--dry_run', '-d', action='store_true',
