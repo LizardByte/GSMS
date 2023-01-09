@@ -59,71 +59,75 @@ import json
 import os
 import re
 import shutil
-import sys
 import time
 import uuid
 
 # lib imports
 import pylnk3
 
+
 # Code from here and modified to work in this project
 # https://gist.github.com/mkropat/7550097
-"""
-Class to build a GUID compliant object for use in WIndows libraries
-
-Parameters
--------
-uuid: string
-
-Returns
--------
-GUID object
-
-Examples
---------
->>> GUID(uuid.UUID("{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"))
-...
-"""
 class GUID(ctypes.Structure):
+    """
+    Class to build a GUID compliant object for use in WIndows libraries
+
+    Parameters
+    -------
+    uuid: string
+
+    Returns
+    -------
+    GUID object
+
+    Examples
+    --------
+    >>> GUID(uuid.UUID("{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"))
+    ...
+    """
     _fields_ = [
         ("Data1", wintypes.DWORD),
         ("Data2", wintypes.WORD),
         ("Data3", wintypes.WORD),
         ("Data4", wintypes.BYTE * 8)
-    ] 
+    ]
 
     def __init__(self, uuid_):
         ctypes.Structure.__init__(self)
         self.Data1, self.Data2, self.Data3, self.Data4[0], self.Data4[1], rest = uuid_.fields
         for i in range(2, 8):
-            self.Data4[i] = rest>>(8 - i - 1)*8 & 0xff
+            self.Data4[i] = rest >> (8 - i - 1)*8 & 0xff
 
-"""
-Class to provided User handles for the 'Default' and 'Current' Windows User
 
-Returns
--------
-C Pointer to user handle
-
-Examples
---------
->>> UserHandle.common
-...
-"""
 class UserHandle:
-    current = wintypes.HANDLE(0)
-    common  = wintypes.HANDLE(-1)
+    """
+    Class to provided User handles for the 'Default' and 'Current' Windows User
 
-_CoTaskMemFree = ctypes.windll.ole32.CoTaskMemFree 
-_CoTaskMemFree.restype= None
+    Returns
+    -------
+    C Pointer to user handle
+
+    Examples
+    --------
+    >>> UserHandle.common
+    ...
+    """
+    current = wintypes.HANDLE(0)
+    common = wintypes.HANDLE(-1)
+
+
+_CoTaskMemFree = ctypes.windll.ole32.CoTaskMemFree
+_CoTaskMemFree.restype = None
 _CoTaskMemFree.argtypes = [ctypes.c_void_p]
 
 _SHGetKnownFolderPath = ctypes.windll.shell32.SHGetKnownFolderPath
 _SHGetKnownFolderPath.argtypes = [
     ctypes.POINTER(GUID), wintypes.DWORD, wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
-] 
+]
 
-class PathNotFoundException(Exception): pass
+
+class PathNotFoundException(Exception):
+    pass
 
 
 def stopwatch(message: str, sec: int) -> None:
@@ -244,20 +248,25 @@ def main() -> None:
 
                 if not app_exists:
                     count += 1
-                    
+
                     # remove final path separator but only if it exists
                     while shortcut.work_dir.endswith(os.sep):
-                       shortcut.work_dir = shortcut.work_dir[:-1]
+                        shortcut.work_dir = shortcut.work_dir[:-1]
 
                     target_path = shortcut.path
 
                     # prepare regex to get folder UUIDs
-                    regex = re.compile(r"^::(\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\})\\")
+                    regex = re.compile(
+                        r"^::(\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\})\\"
+                    )
 
                     work_dir_result = regex.findall(shortcut.work_dir)
 
                     if len(work_dir_result) == 1:
-                        shortcut.work_dir = shortcut.work_dir.replace(f"::{work_dir_result[0]}", get_win_path(work_dir_result[0]))
+                        shortcut.work_dir = shortcut.work_dir.replace(
+                            f"::{work_dir_result[0]}",
+                            get_win_path(work_dir_result[0])
+                        )
 
                     path_result = regex.findall(shortcut.path)
 
@@ -294,30 +303,31 @@ def main() -> None:
                                 'Use the `--apps` arg to specify the full path of the file if you\'d like to use a '
                                 'custom location.')
 
-"""
-Function to resolve Windows UUID folders into their absolute path
 
-Parameters
--------
-folderid: string
-user_handle: UserHandle
-
-Returns
--------
-Path as string
-
-Raises
-------
-PathNotFoundException
-    When a UUID can not be resolved to a path as it is not a windows UUID path
-
-Examples
---------
->>> get_win_path("{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", UserHandle.Common)
-C:\\Users\\Default\\Desktop
-"""
 def get_win_path(folderid, user_handle=UserHandle.current):
-    fid = GUID(uuid.UUID(folderid)) 
+    """
+    Function to resolve Windows UUID folders into their absolute path
+
+    Parameters
+    -------
+    folderid: string
+    user_handle: UserHandle
+
+    Returns
+    -------
+    Path as string
+
+    Raises
+    ------
+    PathNotFoundException
+        When a UUID can not be resolved to a path as it is not a windows UUID path
+
+    Examples
+    --------
+    >>> get_win_path("{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", UserHandle.Common)
+    C:\\Users\\Default\\Desktop
+    """
+    fid = GUID(uuid.UUID(folderid))
     pPath = ctypes.c_wchar_p()
     S_OK = 0
     if _SHGetKnownFolderPath(ctypes.byref(fid), 0, user_handle, ctypes.byref(pPath)) != S_OK:
