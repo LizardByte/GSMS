@@ -189,19 +189,18 @@ def main() -> None:
 
                     target_path = shortcut.path
 
-                    # if the OS is Windows we need to resolve shell paths
-                    if os.name == "nt":
-                        regex = re.compile(r"::(\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\})\\")
+                    # prepare regex to get folder UUIDs
+                    regex = re.compile(r"^::(\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\})\\")
 
-                        work_dir_result = regex.findall(shortcut.work_dir)
+                    work_dir_result = regex.findall(shortcut.work_dir)
 
-                        if len(work_dir_result) == 1:
-                            shortcut.work_dir = shortcut.work_dir.replace(f"::{work_dir_result[0]}", get_win_path(work_dir_result[0]))
+                    if len(work_dir_result) == 1:
+                        shortcut.work_dir = shortcut.work_dir.replace(f"::{work_dir_result[0]}", get_win_path(work_dir_result[0]))
 
-                        path_result = regex.findall(shortcut.path)
+                    path_result = regex.findall(shortcut.path)
 
-                        if len(path_result) == 1:
-                            target_path = shortcut.path.replace(f"::{path_result[0]}", get_win_path(path_result[0]))
+                    if len(path_result) == 1:
+                        target_path = shortcut.path.replace(f"::{path_result[0]}", get_win_path(path_result[0]))
 
                     target_path = target_path.replace(shortcut.work_dir, '')
 
