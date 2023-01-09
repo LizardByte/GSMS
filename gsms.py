@@ -61,6 +61,8 @@ import re
 import shutil
 import time
 from uuid import UUID
+import xml.etree.ElementTree as ET
+import re
 
 # lib imports
 import pylnk3
@@ -186,6 +188,7 @@ def stopwatch(message: str, sec: int) -> None:
         time.sleep(1)
         sec -= 1
 
+sunshine_apps = None
 
 def main() -> None:
     """
@@ -229,11 +232,15 @@ def main() -> None:
                              'changes that would be made without committing them.')
     parser.add_argument('--no_sleep', action='store_true',
                         help='If set, the script will not pause for 10 seconds at the end of the import.')
+    parser.add_argument('--nv_add_autodetect', '-n', action='store_true',
+                        help='If set, GSMS will import the autodetected apps from NVIDIA Gamestream.')
 
     args = parser.parse_args()
 
     # create the image destination if it doesn't exist
     os.makedirs(name=args.image_path, exist_ok=True)
+
+    nvidia_autodetect_dir = os.path.join(os.environ['localappdata'], "NVIDIA", "NvBackend", "journalBS.main.xml")
 
     count = 0
     if os.path.isfile(args.apps):
@@ -274,40 +281,6 @@ def main() -> None:
 
                 if not app_exists:
                     count += 1
-
-                    # remove final path separator but only if it exists
-                    while shortcut.work_dir.endswith(os.sep):
-                        shortcut.work_dir = shortcut.work_dir[:-1]
-
-                    target_path = shortcut.path
-
-                    # prepare regex to get folder UUIDs
-                    regex = re.compile(
-                        r"^::(\{[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}})\\"
-                    )
-
-                    work_dir_result = regex.findall(shortcut.work_dir)
-
-                    if len(work_dir_result) == 1:
-                        shortcut.work_dir = shortcut.work_dir.replace(
-                            f"::{work_dir_result[0]}",
-                            get_win_path(work_dir_result[0])
-                        )
-
-                    path_result = regex.findall(shortcut.path)
-
-                    if len(path_result) == 1:
-                        target_path = shortcut.path.replace(
-                            f"::{path_result[0]}",
-                            get_win_path(folder_id=path_result[0])
-                        )
-
-                    target_path = target_path.replace(shortcut.work_dir, '')
-
-                    # remove first path separator but only if it exists
-                    if target_path.startswith(os.sep):
-                        target_path = target_path[1:]
-
                     sunshine_apps['apps'].append(
                         {
                             'name': name,
@@ -317,6 +290,24 @@ def main() -> None:
                             'image-path': dst_image
                         }
                     )
+
+        if args.nv_add_autodetect:
+            tree = ET.parse(nvidia_autodetect_dir)
+            root = tree.getroot()
+            for elem in root:
+                if not elem.tag == "Application":
+                    continue
+
+                for app in elem:
+                    if app.find("IsStreamingSupported").text == "0":
+                        continue
+
+                    name = app.find("StreamingCaption").text
+                    cmd = app.find("StreamingCommandLine").text
+                    working_dir = app.find("InstallDirectory").text
+
+                    add_game()
+    
         if not args.dry_run:
             with open(file=args.apps, mode="w") as f:
                 json.dump(obj=sunshine_apps, indent=4, fp=f)
@@ -332,6 +323,47 @@ def main() -> None:
                                 'Use the `--apps` arg to specify the full path of the file if you\'d like to use a '
                                 'custom location.')
 
+def add_game(name, logfile, cmd, working_dir, image_path): 
+    if working_dir.endswith(os.sep): # remove final path separator but only if it exists
+        working_dir = working_dir[:-1]
+
+    # prepare regex to get folder UUIDs
+    regex = re.compile(r"^::(\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\})\\")
+
+    work_dir_result = regex.findall(working_dir)
+
+    if len(work_dir_result) == 1:
+        working_dir = working_dir.replace(f"::{work_dir_result[0]}", get_win_path(work_dir_result[0]))
+
+    path_result = regex.findall(cmd)
+
+    if len(path_result) == 1:
+        cmd = cmd.replace(f"::{path_result[0]}", get_win_path(path_result[0]))
+
+    cmd = cmd.replace(working_dir, '')
+
+    if cmd.startswith(os.sep): # remove first path separator but only if it exists
+        cmd = cmd[1:]
+
+    sunshine_apps['apps'].append(
+        {
+            'name': name,
+            'output': f"{name.lower().replace(' ', '_')}.log",
+            'cmd': cmd,
+            'working-dir': working_dir,  # remove the final path deliminator
+            'image-path': dst_image
+        }
+    )
+
+# Code from here and modified to work in this project
+# https://gist.github.com/mkropat/7550097
+class GUID(ctypes.Structure):
+    _fields_ = [
+        ("Data1", wintypes.DWORD),
+        ("Data2", wintypes.WORD),
+        ("Data3", wintypes.WORD),
+        ("Data4", wintypes.BYTE * 8)
+    ] 
 
 if __name__ == '__main__':
     main()
