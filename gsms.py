@@ -188,8 +188,6 @@ def stopwatch(message: str, sec: int) -> None:
         time.sleep(1)
         sec -= 1
 
-sunshine_apps = None
-
 def main() -> None:
     """
     Main application entrypoint. Migrates Nvidia Gamestream apps to Sunshine by updating the `apps.json` file and
@@ -240,7 +238,9 @@ def main() -> None:
     # create the image destination if it doesn't exist
     os.makedirs(name=args.image_path, exist_ok=True)
 
-    nvidia_autodetect_dir = os.path.join(os.environ['localappdata'], "NVIDIA", "NvBackend", "journalBS.main.xml")
+    nvidia_base_dir = os.path.join(os.environ['localappdata'], "NVIDIA", "NvBackend")
+    nvidia_autodetect_dir = os.path.join(nvidia_base_dir, "journalBS.main.xml")
+    nvidia_images_base_dir = os.path.join(nvidia_base_dir, "StreamingAssetsData")
 
     count = 0
     if os.path.isfile(args.apps):
@@ -281,19 +281,25 @@ def main() -> None:
 
                 if not app_exists:
                     count += 1
-                    sunshine_apps['apps'].append(
-                        {
-                            'name': name,
-                            'output': f"{name.lower().replace(' ', '_')}.log",
-                            'cmd': target_path,
-                            'working-dir': shortcut.work_dir,
-                            'image-path': dst_image
-                        }
+                    if shortcut.work_dir.endswith(os.sep): # remove final path separator but only if it exists
+                       shortcut.work_dir = shortcut.work_dir[:-1]
+
+                    add_game(
+                        sunshine_apps,
+                        name,
+                        f"{name.lower().replace(' ', '_')}.log",
+                        shortcut.path.replace(shortcut.work_dir, ''),
+                        shortcut.work_dir.rsplit('\\', 1)[0],
+                        dst_image
                     )
 
         if args.nv_add_autodetect:
             tree = ET.parse(nvidia_autodetect_dir)
             root = tree.getroot()
+
+            with open(file=os.path.join(nvidia_images_base_dir, "ApplicationData.json"), mode="r") as f:
+                gfe_apps = json.load(f)
+
             for elem in root:
                 if not elem.tag == "Application":
                     continue
@@ -302,12 +308,31 @@ def main() -> None:
                     if app.find("IsStreamingSupported").text == "0":
                         continue
 
-                    name = app.find("StreamingCaption").text
+                    name = app.find("DisplayName").text
+
+                    if name =="Steam":
+                        continue
+
                     cmd = app.find("StreamingCommandLine").text
                     working_dir = app.find("InstallDirectory").text
+                    short_name = app.find("ShortName").text
+                    src_img = os.path.join(
+                        nvidia_images_base_dir,
+                        short_name,
+                        gfe_apps["metadata"][short_name]["c"],
+                        f"{short_name}-box-art.png"
+                    )
+                    dst_image = os.path.join(args.image_path, f'{name}.png')
 
-                    add_game()
-    
+                    # if src_image exists and dst_image does not exist
+                    if os.path.isfile(src_image) and not os.path.isfile(dst_image):
+                        shutil.copy2(src=src_image, dst=dst_image)  # copy2 preserves metadata
+                        print(f'Copied box-art image to: {dst_image}')
+                    else:
+                        print(f'No box-art image found at: {src_image}')
+
+                    add_game(sunshine_apps, name, f"{short_name}.log", cmd, working_dir, dst_image)
+
         if not args.dry_run:
             with open(file=args.apps, mode="w") as f:
                 json.dump(obj=sunshine_apps, indent=4, fp=f)
@@ -323,47 +348,16 @@ def main() -> None:
                                 'Use the `--apps` arg to specify the full path of the file if you\'d like to use a '
                                 'custom location.')
 
-def add_game(name, logfile, cmd, working_dir, image_path): 
-    if working_dir.endswith(os.sep): # remove final path separator but only if it exists
-        working_dir = working_dir[:-1]
-
-    # prepare regex to get folder UUIDs
-    regex = re.compile(r"^::(\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\})\\")
-
-    work_dir_result = regex.findall(working_dir)
-
-    if len(work_dir_result) == 1:
-        working_dir = working_dir.replace(f"::{work_dir_result[0]}", get_win_path(work_dir_result[0]))
-
-    path_result = regex.findall(cmd)
-
-    if len(path_result) == 1:
-        cmd = cmd.replace(f"::{path_result[0]}", get_win_path(path_result[0]))
-
-    cmd = cmd.replace(working_dir, '')
-
-    if cmd.startswith(os.sep): # remove first path separator but only if it exists
-        cmd = cmd[1:]
-
+def add_game(sunshine_apps, name, logfile, cmd, working_dir, image_path): 
     sunshine_apps['apps'].append(
         {
             'name': name,
-            'output': f"{name.lower().replace(' ', '_')}.log",
+            'output': logfile,
             'cmd': cmd,
-            'working-dir': working_dir,  # remove the final path deliminator
-            'image-path': dst_image
+            'working-dir': working_dir,
+            'image-path': image_path
         }
     )
-
-# Code from here and modified to work in this project
-# https://gist.github.com/mkropat/7550097
-class GUID(ctypes.Structure):
-    _fields_ = [
-        ("Data1", wintypes.DWORD),
-        ("Data2", wintypes.WORD),
-        ("Data3", wintypes.WORD),
-        ("Data4", wintypes.BYTE * 8)
-    ] 
 
 if __name__ == '__main__':
     main()
