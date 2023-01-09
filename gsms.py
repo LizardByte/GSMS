@@ -118,7 +118,7 @@ def main() -> None:
     parser.add_argument('--apps', '-a',
                         help='Specify the sunshine `apps.json` file to update, otherwise we will attempt to use the '
                              '`apps.json` file from the default Sunshine installation location.',
-                        default=os.path.join(os.environ['programfiles'], 'Sunshine', 'apps.json')
+                        default=os.path.join(os.environ['programfiles'], 'Sunshine', 'config', 'apps.json')
                         )
     parser.add_argument('--image_path', '-i',
                         help='Specify the full directory where to copy box art to. If not specified, box art will be '
