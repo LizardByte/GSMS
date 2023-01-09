@@ -57,6 +57,10 @@ import json
 import os
 import shutil
 import time
+import ctypes, sys
+from ctypes import windll, wintypes
+from uuid import UUID
+import re
 
 # lib imports
 import pylnk3
@@ -180,12 +184,37 @@ def main() -> None:
 
                 if not app_exists:
                     count += 1
+                    if shortcut.work_dir.endswith(os.sep): # remove final path separator but only if it exists
+                       shortcut.work_dir = shortcut.work_dir[:-1]
+
+                    target_path = shortcut.path
+
+                    # if the OS is Windows we need to resolve shell paths
+                    if os.name == "nt":
+                        regex = re.compile(r"::(\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\})\\")
+
+                        work_dir_result = regex.findall(shortcut.work_dir)
+
+                        if len(work_dir_result) == 1:
+                            shortcut.work_dir = shortcut.work_dir.replace(f"::{work_dir_result[0]}", get_win_path(work_dir_result[0]))
+
+                        path_result = regex.findall(shortcut.path)
+
+                        if len(path_result) == 1:
+                            target_path = shortcut.path.replace(f"::{path_result[0]}", get_win_path(path_result[0]))
+
+                    target_path = target_path.replace(shortcut.work_dir, '')
+
+
+                    if target_path.startswith(os.sep) and os.name == "nt": # remove first path separator but only if it exists
+                        target_path = target_path[1:]
+
                     sunshine_apps['apps'].append(
                         {
                             'name': name,
                             'output': f"{name.lower().replace(' ', '_')}.log",
-                            'cmd': shortcut.path.replace(shortcut.work_dir, ''),
-                            'working-dir': shortcut.work_dir.rsplit('\\', 1)[0],  # remove the final path deliminator
+                            'cmd': target_path,
+                            'working-dir': shortcut.work_dir,  # remove the final path deliminator
                             'image-path': dst_image
                         }
                     )
@@ -203,6 +232,47 @@ def main() -> None:
                                 'and we will automatically detect it IF you use the default installation directory. '
                                 'Use the `--apps` arg to specify the full path of the file if you\'d like to use a '
                                 'custom location.')
+
+# Code from here and modified to work in this project
+# https://gist.github.com/mkropat/7550097
+class GUID(ctypes.Structure):
+    _fields_ = [
+        ("Data1", wintypes.DWORD),
+        ("Data2", wintypes.WORD),
+        ("Data3", wintypes.WORD),
+        ("Data4", wintypes.BYTE * 8)
+    ] 
+
+    def __init__(self, uuid_):
+        ctypes.Structure.__init__(self)
+        self.Data1, self.Data2, self.Data3, self.Data4[0], self.Data4[1], rest = uuid_.fields
+        for i in range(2, 8):
+            self.Data4[i] = rest>>(8 - i - 1)*8 & 0xff
+
+class UserHandle:
+    current = wintypes.HANDLE(0)
+    common  = wintypes.HANDLE(-1)
+
+_CoTaskMemFree = windll.ole32.CoTaskMemFree 
+_CoTaskMemFree.restype= None
+_CoTaskMemFree.argtypes = [ctypes.c_void_p]
+
+_SHGetKnownFolderPath = windll.shell32.SHGetKnownFolderPath
+_SHGetKnownFolderPath.argtypes = [
+    ctypes.POINTER(GUID), wintypes.DWORD, wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
+] 
+
+class PathNotFoundException(Exception): pass
+
+def get_win_path(folderid, user_handle=UserHandle.current):
+    fid = GUID(UUID(folderid)) 
+    pPath = ctypes.c_wchar_p()
+    S_OK = 0
+    if _SHGetKnownFolderPath(ctypes.byref(fid), 0, user_handle, ctypes.byref(pPath)) != S_OK:
+        raise PathNotFoundException()
+    path = pPath.value
+    _CoTaskMemFree(pPath)
+    return path
 
 
 if __name__ == '__main__':
