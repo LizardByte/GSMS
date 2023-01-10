@@ -320,7 +320,7 @@ def get_win_path(folder_id: str) -> str:
     path_pointer = ctypes.c_wchar_p()
     # Execute function (which stores the path in our pointer) and check return value for success (0 = OK)
     if _SHGetKnownFolderPath(ctypes.byref(fid), 0, wintypes.HANDLE(0), ctypes.byref(path_pointer)) != 0:
-        raise NotADirectoryError()
+        raise NotADirectoryError(f"The specified UUID '{folder_id}' could not be resolved to a path")
     # Get value from pointer
     path = path_pointer.value
     # Free memory used by pointer
