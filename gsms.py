@@ -352,7 +352,7 @@ def main() -> None:
                                 'custom location.')
 
 
-def copy_image(src_image, dst_image):
+def copy_image(src_image, dst_image) -> None:
     """
     Copies an image from src_image to dst_image if the dst is empty or different
 
@@ -379,7 +379,7 @@ def copy_image(src_image, dst_image):
         print(f'No box-art image found at: {src_image}')
 
 
-def has_app(sunshine_apps, name):
+def has_app(sunshine_apps, name) -> bool:
     """
     Checks if a given app name is in the sunshine_apps object
 
@@ -392,7 +392,8 @@ def has_app(sunshine_apps, name):
 
     Returns
     -------
-    True if the app is in the sunshine_apps object. Otherwise False
+    bool:
+        True if the app is in the sunshine_apps object. Otherwise False
 
     Examples
     --------
@@ -410,7 +411,7 @@ def has_app(sunshine_apps, name):
     return app_exists
 
 
-def add_game(sunshine_apps, name, logfile, cmd, working_dir, image_path):
+def add_game(sunshine_apps, name, logfile, cmd, working_dir, image_path) -> None:
     """
     Function to add an app to the sunshine_apps object passed in
 
