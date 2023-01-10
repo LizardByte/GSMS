@@ -74,8 +74,8 @@ class GUID(ctypes.Structure):
 
     Parameters
     ----------
-    uuid: str
-        UUID to parse into a GUID object
+    uuid : str
+        The UUID to parse into a GUID object.
 
     Examples
     --------
@@ -89,9 +89,9 @@ class GUID(ctypes.Structure):
         ("Data4", wintypes.BYTE * 8)
     ]
 
-    def __init__(self, uuid_: str) -> None:
+    def __init__(self, uuid: str) -> None:
         ctypes.Structure.__init__(self)
-        self.Data1, self.Data2, self.Data3, self.Data4[0], self.Data4[1], rest = uuid_.fields
+        self.Data1, self.Data2, self.Data3, self.Data4[0], self.Data4[1], rest = uuid.fields
         for i in range(2, 8):
             self.Data4[i] = rest >> (8 - i - 1)*8 & 0xff
 
@@ -119,9 +119,9 @@ def stopwatch(message: str, sec: int) -> None:
 
     Parameters
     ----------
-    message: str
+    message : str
         Prefix message to display before the countdown timer.
-    sec: int
+    sec : int
         Time, in seconds, to countdown from.
 
     Returns
@@ -254,7 +254,10 @@ def main() -> None:
                     path_result = regex.findall(shortcut.path)
 
                     if len(path_result) == 1:
-                        target_path = shortcut.path.replace(f"::{path_result[0]}", get_win_path(path_result[0]))
+                        target_path = shortcut.path.replace(
+                            f"::{path_result[0]}",
+                            get_win_path(folder_id=path_result[0])
+                        )
 
                     target_path = target_path.replace(shortcut.work_dir, '')
 
@@ -293,17 +296,18 @@ def get_win_path(folder_id: str) -> str:
 
     Parameters
     ----------
-    folder_id: str
+    folder_id : str
+        The folder UUID to convert into the absolute path.
 
     Returns
     -------
     str
-        Resolved WIndows path as string
+        Resolved Windows path as string.
 
     Raises
     ------
-    PathNotFoundException
-        When a UUID can not be resolved to a path as it is not a windows UUID path
+    NotADirectoryError
+        When a UUID can not be resolved to a path as it is not a Windows UUID path this will be raised.
 
     Examples
     --------
@@ -316,7 +320,7 @@ def get_win_path(folder_id: str) -> str:
     path_pointer = ctypes.c_wchar_p()
     # Execute function (which stores the path in our pointer) and check return value for success (0 = OK)
     if _SHGetKnownFolderPath(ctypes.byref(fid), 0, wintypes.HANDLE(0), ctypes.byref(path_pointer)) != 0:
-        raise Exception("The specified UUID could not be resolved to a path")
+        raise NotADirectoryError()
     # Get value from pointer
     path = path_pointer.value
     # Free memory used by pointer
