@@ -70,15 +70,12 @@ import pylnk3
 # https://gist.github.com/mkropat/7550097
 class GUID(ctypes.Structure):
     """
-    Class to build a GUID compliant object for use in WIndows libraries
+    Class to build a GUID compliant object for use in Windows libraries
 
     Parameters
     -------
-    uuid: string
-
-    Returns
-    -------
-    GUID object
+    uuid: str
+        UUID to parse into a GUID object
 
     Examples
     --------
@@ -92,42 +89,26 @@ class GUID(ctypes.Structure):
         ("Data4", wintypes.BYTE * 8)
     ]
 
-    def __init__(self, uuid_):
+    def __init__(self, uuid_) -> None:
         ctypes.Structure.__init__(self)
         self.Data1, self.Data2, self.Data3, self.Data4[0], self.Data4[1], rest = uuid_.fields
         for i in range(2, 8):
             self.Data4[i] = rest >> (8 - i - 1)*8 & 0xff
 
 
-class UserHandle:
-    """
-    Class to provided User handles for the 'Default' and 'Current' Windows User
-
-    Returns
-    -------
-    C Pointer to user handle
-
-    Examples
-    --------
-    >>> UserHandle.common
-    ...
-    """
-    current = wintypes.HANDLE(0)
-    common = wintypes.HANDLE(-1)
-
-
+# Define function to free pointer memory
 _CoTaskMemFree = ctypes.windll.ole32.CoTaskMemFree
+# Add response type to function call
 _CoTaskMemFree.restype = None
+# Add argument types to C function call
 _CoTaskMemFree.argtypes = [ctypes.c_void_p]
 
+# Define function call for resolving the GUID path
 _SHGetKnownFolderPath = ctypes.windll.shell32.SHGetKnownFolderPath
+# Add argument types to the C function call
 _SHGetKnownFolderPath.argtypes = [
     ctypes.POINTER(GUID), wintypes.DWORD, wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
 ]
-
-
-class PathNotFoundException(Exception):
-    pass
 
 
 def stopwatch(message: str, sec: int) -> None:
@@ -304,18 +285,18 @@ def main() -> None:
                                 'custom location.')
 
 
-def get_win_path(folderid, user_handle=UserHandle.current):
+def get_win_path(folder_id) -> str:
     """
     Function to resolve Windows UUID folders into their absolute path
 
     Parameters
-    -------
-    folderid: string
-    user_handle: UserHandle
+    ----------
+    folder_id: str
 
     Returns
     -------
-    Path as string
+    str
+        Resolved WIndows path as string
 
     Raises
     ------
@@ -325,15 +306,19 @@ def get_win_path(folderid, user_handle=UserHandle.current):
     Examples
     --------
     >>> get_win_path("{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", UserHandle.Common)
-    C:\\Users\\Default\\Desktop
+    ...
     """
-    fid = GUID(uuid.UUID(folderid))
-    pPath = ctypes.c_wchar_p()
-    S_OK = 0
-    if _SHGetKnownFolderPath(ctypes.byref(fid), 0, user_handle, ctypes.byref(pPath)) != S_OK:
-        raise PathNotFoundException()
-    path = pPath.value
-    _CoTaskMemFree(pPath)
+    # Get actual Windows folder id (fid)
+    fid = GUID(uuid.UUID(folder_id))
+    # Prepare pointer to store the path
+    path_pointer = ctypes.c_wchar_p()
+    # Execute function (which stores the path in our pointer) and check return value for success (0 = OK)
+    if _SHGetKnownFolderPath(ctypes.byref(fid), 0, wintypes.HANDLE(0), ctypes.byref(path_pointer)) != 0:
+        raise Exception("The specified UUID could not be resolved to a path")
+    # Get value from pointer
+    path = path_pointer.value
+    # Free memory used by pointer
+    _CoTaskMemFree(path_pointer)
     return path
 
 
