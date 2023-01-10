@@ -357,9 +357,11 @@ def copy_image(src_image, dst_image):
     Copies an image from src_image to dst_image if the dst is empty or different
 
     Parameters
-    -------
-    src_image: string
-    dst_image: string
+    ----------
+    src_image: str
+        Source path of the image
+    dst_image: str
+        Destination path of the image
 
     Returns
     -------
@@ -382,9 +384,11 @@ def has_app(sunshine_apps, name):
     Checks if a given app name is in the sunshine_apps object
 
     Parameters
-    -------
+    ----------
     sunshine_apps: Object
+        Parsed JSON object of the sunshine `apps.json`
     name: string
+        Name to check for
 
     Returns
     -------
@@ -411,13 +415,19 @@ def add_game(sunshine_apps, name, logfile, cmd, working_dir, image_path):
     Function to add an app to the sunshine_apps object passed in
 
     Parameters
-    -------
+    ----------
     sunshine_apps: Object
-    name: string
-    logfile: string
-    cmd: string
-    working_dir: string
-    image_path: string
+        Parsed JSON object of the sunshine `apps.json`
+    name: str
+        Name of the app
+    logfile: str
+        Logfile name for the app
+    cmd: str
+        Commandline to start the app
+    working_dir: str
+        Working directory for the app
+    image_path: str
+        Path to an image file to display as box-art
 
     Returns
     -------
