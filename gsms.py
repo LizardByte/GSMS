@@ -242,8 +242,11 @@ def main() -> None:
     # create the image destination if it doesn't exist
     os.makedirs(name=args.image_path, exist_ok=True)
 
+    # create some helper path variables for later usage
     nvidia_base_dir = os.path.join(os.environ['localappdata'], "NVIDIA", "NvBackend")
+    # Path for the main application xml NVidia GFE uses
     nvidia_autodetect_dir = os.path.join(nvidia_base_dir, "journalBS.main.xml")
+    # Base folder for the box-art
     nvidia_images_base_dir = os.path.join(nvidia_base_dir, "StreamingAssetsData")
 
     count = 0
@@ -291,53 +294,55 @@ def main() -> None:
                 )
 
         if args.nv_add_autodetect:
+            # Use ElementTree lib to build XML tree
             tree = ET.parse(nvidia_autodetect_dir)
+            # Get root so we can loop through children
             root = tree.getroot()
+            applications_root = root.find("Application")
 
+            # Prepare JSON object to fetch version numbers for use in getting the box-art image
             with open(file=os.path.join(nvidia_images_base_dir, "ApplicationData.json"), mode="r") as f:
                 gfe_apps = json.load(f)
 
-            for elem in root:
-                if not elem.tag == "Application":
+            # Loop through all applications in the 'Application' parent element
+            for application in applications_root:
+                # If GFE GS marked an app as not streaming supported we skip it
+                if application.find("IsStreamingSupported").text == "0":
                     continue
 
-                for app in elem:
-                    # If GFE GS marked an app as not streaming supported we skip it
-                    if app.find("IsStreamingSupported").text == "0":
-                        continue
+                name = application.find("DisplayName").text
 
-                    name = app.find("DisplayName").text
+                # We skip the GFE GS steam application
+                if name == "Steam":
+                    continue
 
-                    # We skip the GFE GS steam application
-                    if name == "Steam":
-                        continue
+                # If we already have an App with the EXACT same name we skip it
+                if has_app(sunshine_apps, name):
+                    continue
 
-                    # If we already have an App with the EXACT same name we skip it
-                    if has_app(sunshine_apps, name):
-                        continue
+                # Increae count here to exclude some stuff
+                count += 1
 
-                    # Increae count here to exclude some stuff
-                    count += 1
+                cmd = application.find("StreamingCommandLine").text
+                working_dir = application.find("InstallDirectory").text
+                # NVidia's short_name is a pre-shortened and filesystem safe name for the game
+                short_name = application.find("ShortName").text
 
-                    cmd = app.find("StreamingCommandLine").text
-                    working_dir = app.find("InstallDirectory").text
-                    short_name = app.find("ShortName").text
+                print(f'Found gamestream app: {name}')
+                print(f'working-dir: {working_dir}')
+                print(f'path: {cmd}')
 
-                    print(f'Found gamestream app: {name}')
-                    print(f'working-dir: {working_dir}')
-                    print(f'path: {cmd}')
+                src_image = os.path.join(
+                    nvidia_images_base_dir,
+                    short_name,
+                    gfe_apps["metadata"][short_name]["c"],
+                    f"{short_name}-box-art.png"
+                )
+                dst_image = os.path.join(args.image_path, f'{short_name}.png')
 
-                    src_image = os.path.join(
-                        nvidia_images_base_dir,
-                        short_name,
-                        gfe_apps["metadata"][short_name]["c"],
-                        f"{short_name}-box-art.png"
-                    )
-                    dst_image = os.path.join(args.image_path, f'{short_name}.png')
+                copy_image(src_image, dst_image)
 
-                    copy_image(src_image, dst_image)
-
-                    add_game(sunshine_apps, name, f"{short_name}.log", cmd, working_dir, dst_image)
+                add_game(sunshine_apps, name, f"{short_name}.log", cmd, working_dir, dst_image)
 
         if not args.dry_run:
             with open(file=args.apps, mode="w") as f:
