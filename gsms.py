@@ -96,6 +96,7 @@ class GUID(ctypes.Structure):
             self.Data4[i] = rest >> (8 - i - 1)*8 & 0xff
 
 
+# https://learn.microsoft.com/en-us/windows/win32/api/combaseapi/nf-combaseapi-cotaskmemfree
 # Define function to free pointer memory
 _CoTaskMemFree = ctypes.windll.ole32.CoTaskMemFree
 # Add response type to function call
@@ -103,6 +104,7 @@ _CoTaskMemFree.restype = None
 # Add argument types to C function call
 _CoTaskMemFree.argtypes = [ctypes.c_void_p]
 
+# https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shgetknownfolderpath
 # Define function call for resolving the GUID path
 _SHGetKnownFolderPath = ctypes.windll.shell32.SHGetKnownFolderPath
 # Add argument types to the C function call
