@@ -73,7 +73,7 @@ class GUID(ctypes.Structure):
     Class to build a GUID compliant object for use in Windows libraries
 
     Parameters
-    -------
+    ----------
     uuid: str
         UUID to parse into a GUID object
 
