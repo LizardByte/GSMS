@@ -35,6 +35,9 @@ OPTIONS
 --no_sleep
     If set, the script will not pause for 10 seconds at the end of the import.
 
+--nv_add_autodetect, -n
+    If set, the swcript will add all streamable apps from NVidia GFE's autodetected applications
+
 Examples
 --------
 
