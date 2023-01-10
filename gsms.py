@@ -89,7 +89,7 @@ class GUID(ctypes.Structure):
         ("Data4", wintypes.BYTE * 8)
     ]
 
-    def __init__(self, uuid_) -> None:
+    def __init__(self, uuid_: str) -> None:
         ctypes.Structure.__init__(self)
         self.Data1, self.Data2, self.Data3, self.Data4[0], self.Data4[1], rest = uuid_.fields
         for i in range(2, 8):
@@ -287,7 +287,7 @@ def main() -> None:
                                 'custom location.')
 
 
-def get_win_path(folder_id) -> str:
+def get_win_path(folder_id: str) -> str:
     """
     Function to resolve Windows UUID folders into their absolute path
 
