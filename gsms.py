@@ -60,26 +60,26 @@ import os
 import re
 import shutil
 import time
-import uuid
+from uuid import UUID
 
 # lib imports
 import pylnk3
 
 
-# Code from here and modified to work in this project
+# Code from here and simplified to work with GSMS
 # https://gist.github.com/mkropat/7550097
-class GUID(ctypes.Structure):
+class WindowsGUIDWrapper(ctypes.Structure):
     """
-    Class to build a GUID compliant object for use in Windows libraries
+    Create a GUID compliant object for use in Windows libraries.
 
     Parameters
     ----------
-    uuid : str
+    unique_id : UUID
         The UUID to parse into a GUID object.
 
     Examples
     --------
-    >>> GUID(uuid.UUID("{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"))
+    >>> WindowsGUIDWrapper(unique_id=UUID("{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}"))
     ...
     """
     _fields_ = [
@@ -89,9 +89,9 @@ class GUID(ctypes.Structure):
         ("Data4", wintypes.BYTE * 8)
     ]
 
-    def __init__(self, uuid: str) -> None:
+    def __init__(self, unique_id: UUID) -> None:
         ctypes.Structure.__init__(self)
-        self.Data1, self.Data2, self.Data3, self.Data4[0], self.Data4[1], rest = uuid.fields
+        self.Data1, self.Data2, self.Data3, self.Data4[0], self.Data4[1], rest = unique_id.fields
         for i in range(2, 8):
             self.Data4[i] = rest >> (8 - i - 1)*8 & 0xff
 
@@ -109,8 +109,51 @@ _CoTaskMemFree.argtypes = [ctypes.c_void_p]
 _SHGetKnownFolderPath = ctypes.windll.shell32.SHGetKnownFolderPath
 # Add argument types to the C function call
 _SHGetKnownFolderPath.argtypes = [
-    ctypes.POINTER(GUID), wintypes.DWORD, wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
+    ctypes.POINTER(WindowsGUIDWrapper), wintypes.DWORD, wintypes.HANDLE, ctypes.POINTER(ctypes.c_wchar_p)
 ]
+
+
+def get_win_path(folder_id: str) -> str:
+    """
+    Resolve Windows UUID folders into their absolute path.
+
+    Parameters
+    ----------
+    folder_id : str
+        The folder UUID to convert into the absolute path.
+
+    Returns
+    -------
+    str
+        Resolved Windows path as string.
+
+    Raises
+    ------
+    NotADirectoryError
+        When a UUID can not be resolved to a path as it is not a Windows UUID path this will be raised.
+
+    Examples
+    --------
+    >>> get_win_path(folder_id="{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}")
+    ...
+    """
+    # Get actual Windows folder id (fid)
+    fid = WindowsGUIDWrapper(unique_id=UUID(folder_id))
+
+    # Prepare pointer to store the path
+    path_pointer = ctypes.c_wchar_p()
+
+    # Execute function (which stores the path in our pointer) and check return value for success (0 = OK)
+    if _SHGetKnownFolderPath(ctypes.byref(fid), 0, wintypes.HANDLE(0), ctypes.byref(path_pointer)) != 0:
+        raise NotADirectoryError(f"The specified UUID '{folder_id}' could not be resolved to a path")
+
+    # Get value from pointer
+    path = path_pointer.value
+
+    # Free memory used by pointer
+    _CoTaskMemFree(path_pointer)
+
+    return path
 
 
 def stopwatch(message: str, sec: int) -> None:
@@ -240,7 +283,7 @@ def main() -> None:
 
                     # prepare regex to get folder UUIDs
                     regex = re.compile(
-                        r"^::(\{[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\})\\"
+                        r"^::(\{[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}})\\"
                     )
 
                     work_dir_result = regex.findall(shortcut.work_dir)
@@ -288,44 +331,6 @@ def main() -> None:
                                 'and we will automatically detect it IF you use the default installation directory. '
                                 'Use the `--apps` arg to specify the full path of the file if you\'d like to use a '
                                 'custom location.')
-
-
-def get_win_path(folder_id: str) -> str:
-    """
-    Function to resolve Windows UUID folders into their absolute path
-
-    Parameters
-    ----------
-    folder_id : str
-        The folder UUID to convert into the absolute path.
-
-    Returns
-    -------
-    str
-        Resolved Windows path as string.
-
-    Raises
-    ------
-    NotADirectoryError
-        When a UUID can not be resolved to a path as it is not a Windows UUID path this will be raised.
-
-    Examples
-    --------
-    >>> get_win_path("{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}", UserHandle.Common)
-    ...
-    """
-    # Get actual Windows folder id (fid)
-    fid = GUID(uuid.UUID(folder_id))
-    # Prepare pointer to store the path
-    path_pointer = ctypes.c_wchar_p()
-    # Execute function (which stores the path in our pointer) and check return value for success (0 = OK)
-    if _SHGetKnownFolderPath(ctypes.byref(fid), 0, wintypes.HANDLE(0), ctypes.byref(path_pointer)) != 0:
-        raise NotADirectoryError(f"The specified UUID '{folder_id}' could not be resolved to a path")
-    # Get value from pointer
-    path = path_pointer.value
-    # Free memory used by pointer
-    _CoTaskMemFree(path_pointer)
-    return path
 
 
 if __name__ == '__main__':
