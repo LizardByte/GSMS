@@ -60,10 +60,11 @@ import ctypes
 from ctypes import wintypes
 import json
 import os
+import re
 import shutil
 import time
 from uuid import UUID
-import xml
+import xml.etree.ElementTree
 
 # lib imports
 import pylnk3
@@ -156,6 +157,8 @@ def get_win_path(folder_id: str) -> str:
     # Free memory used by pointer
     _CoTaskMemFree(path_pointer)
 
+    print(path)
+
     return path
 
 
@@ -186,13 +189,13 @@ def copy_image(src_image: str, dst_image: str) -> None:
         print(f'No box-art image found at: {src_image}')
 
 
-def has_app(sunshine_apps: object, name: str) -> bool:
+def has_app(sunshine_apps: any, name: str) -> bool:
     """
     Checks if a given app name is in the sunshine_apps object
 
     Parameters
     ----------
-    sunshine_apps: object
+    sunshine_apps: any
         Parsed JSON object of the sunshine `apps.json`
     name: str
         Name to check for
@@ -204,7 +207,7 @@ def has_app(sunshine_apps: object, name: str) -> bool:
 
     Examples
     --------
-    >>> has_app(sunshine_apps_object, "Game Name")
+    >>> has_app(any, "Game Name")
     False
     """
     app_exists = False
@@ -218,13 +221,13 @@ def has_app(sunshine_apps: object, name: str) -> bool:
     return app_exists
 
 
-def add_game(sunshine_apps: object, name: str, logfile: str, cmd: str, working_dir: str, image_path: str) -> None:
+def add_game(sunshine_apps: any, name: str, logfile: str, cmd: str, working_dir: str, image_path: str) -> None:
     """
     Function to add an app to the sunshine_apps object passed in
 
     Parameters
     ----------
-    sunshine_apps: object
+    sunshine_apps: any
         Parsed JSON object of the sunshine `apps.json`
     name: str
         Name of the app
@@ -243,8 +246,40 @@ def add_game(sunshine_apps: object, name: str, logfile: str, cmd: str, working_d
 
     Examples
     --------
-    >>> add_game(sunshine_apps_object, "Game Name", "game.log", "game.exe", "C:\\gamedir", "C:\\gamedir\\image.png")
+    >>> add_game(any, "Game Name", "game.log", "game.exe", "C:\\gamedir", "C:\\gamedir\\image.png")
     """
+    # remove final path separator but only if it exists
+    while working_dir.endswith(os.sep):
+        working_dir = working_dir[:-1]
+
+    # prepare regex to get folder UUIDs which can only be at the start exactly 1 time
+    regex = re.compile(
+        r"^::(\{[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}}){1}\\"
+    )
+
+    working_dir_result = regex.findall(working_dir)
+
+    if len(working_dir_result) == 1:
+        working_dir = working_dir.replace(
+            f"::{working_dir_result[0]}",
+            get_win_path(working_dir_result[0])
+        )
+
+    cmd_result = regex.findall(cmd)
+
+    if len(cmd_result) == 1:
+        cmd = cmd.replace(
+            f"::{cmd_result[0]}",
+            get_win_path(cmd_result[0])
+        )
+
+    # replace any remains of the working directory in the command
+    cmd = cmd.replace(working_dir, '')
+
+    # remove preceding separator on the command
+    while cmd.startswith(os.sep):
+        cmd = cmd[1:]
+
     sunshine_apps['apps'].append(
         {
             'name': name,
@@ -374,10 +409,6 @@ def main() -> None:
                     continue
 
                 count += 1
-
-                # remove final path separator but only if it exists
-                if shortcut.work_dir.endswith(os.sep):
-                    shortcut.work_dir = shortcut.work_dir[:-1]
 
                 add_game(
                     sunshine_apps=sunshine_apps,
