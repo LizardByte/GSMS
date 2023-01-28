@@ -60,12 +60,10 @@ import ctypes
 from ctypes import wintypes
 import json
 import os
-import re
 import shutil
 import time
 from uuid import UUID
-import xml.etree.ElementTree as ET
-import re
+import xml
 
 # lib imports
 import pylnk3
@@ -159,6 +157,103 @@ def get_win_path(folder_id: str) -> str:
     _CoTaskMemFree(path_pointer)
 
     return path
+
+
+def copy_image(src_image: str, dst_image: str) -> None:
+    """
+    Copies an image from src_image to dst_image if the dst is empty or different
+
+    Parameters
+    ----------
+    src_image: str
+        Source path of the image
+    dst_image: str
+        Destination path of the image
+
+    Returns
+    -------
+    None
+
+    Examples
+    --------
+    >>> copy_image("C:\\Image1.png", "D:\\Image1.png")
+    """
+    # if src_image exists and dst_image does not exist
+    if os.path.isfile(src_image) and not os.path.isfile(dst_image):
+        shutil.copy2(src=src_image, dst=dst_image)  # copy2 preserves metadata
+        print(f'Copied box-art image to: {dst_image}')
+    else:
+        print(f'No box-art image found at: {src_image}')
+
+
+def has_app(sunshine_apps: object, name: str) -> bool:
+    """
+    Checks if a given app name is in the sunshine_apps object
+
+    Parameters
+    ----------
+    sunshine_apps: object
+        Parsed JSON object of the sunshine `apps.json`
+    name: str
+        Name to check for
+
+    Returns
+    -------
+    bool:
+        True if the app is in the sunshine_apps object. Otherwise False
+
+    Examples
+    --------
+    >>> has_app(sunshine_apps_object, "Game Name")
+    False
+    """
+    app_exists = False
+
+    for existing_app in sunshine_apps['apps']:
+        if name == existing_app['name']:
+            app_exists = True
+            print(f'{name} app already exist in Sunshine apps.json, skipping.')
+            break
+
+    return app_exists
+
+
+def add_game(sunshine_apps: object, name: str, logfile: str, cmd: str, working_dir: str, image_path: str) -> None:
+    """
+    Function to add an app to the sunshine_apps object passed in
+
+    Parameters
+    ----------
+    sunshine_apps: object
+        Parsed JSON object of the sunshine `apps.json`
+    name: str
+        Name of the app
+    logfile: str
+        Logfile name for the app
+    cmd: str
+        Commandline to start the app
+    working_dir: str
+        Working directory for the app
+    image_path: str
+        Path to an image file to display as box-art
+
+    Returns
+    -------
+    None
+
+    Examples
+    --------
+    >>> add_game(sunshine_apps_object, "Game Name", "game.log", "game.exe", "C:\\gamedir", "C:\\gamedir\\image.png")
+    """
+    sunshine_apps['apps'].append(
+        {
+            'name': name,
+            'output': logfile,
+            'cmd': cmd,
+            'working-dir': working_dir,
+            'image-path': image_path
+        }
+    )
 
 
 def stopwatch(message: str, sec: int) -> None:
@@ -273,7 +368,7 @@ def main() -> None:
                 src_image = os.path.join(args.shortcut_dir, 'StreamingAssets', name, 'box-art.png')
                 dst_image = os.path.join(args.image_path, f'{name}.png')
 
-                copy_image(src_image, dst_image)
+                copy_image(src_image=src_image, dst_image=dst_image)
 
                 if has_app(sunshine_apps, name):
                     continue
@@ -285,17 +380,17 @@ def main() -> None:
                     shortcut.work_dir = shortcut.work_dir[:-1]
 
                 add_game(
-                    sunshine_apps,
-                    name,
-                    f"{name.lower().replace(' ', '_')}.log",
-                    shortcut.path.replace(shortcut.work_dir, ''),
-                    shortcut.work_dir.rsplit('\\', 1)[0],
-                    dst_image
+                    sunshine_apps=sunshine_apps,
+                    name=name,
+                    logfile=f"{name.lower().replace(' ', '_')}.log",
+                    cmd=shortcut.path.replace(shortcut.work_dir, ''),
+                    working_dir=shortcut.work_dir.rsplit('\\', 1)[0],
+                    image_path=dst_image
                 )
 
         if args.nv_add_autodetect:
             # Use ElementTree lib to build XML tree
-            tree = ET.parse(nvidia_autodetect_dir)
+            tree = xml.etree.ElementTree.parse(nvidia_autodetect_dir)
             # Get root so we can loop through children
             root = tree.getroot()
             applications_root = root.find("Application")
@@ -339,10 +434,15 @@ def main() -> None:
                     f"{short_name}-box-art.png"
                 )
                 dst_image = os.path.join(args.image_path, f'{short_name}.png')
-
-                copy_image(src_image, dst_image)
-
-                add_game(sunshine_apps, name, f"{short_name}.log", cmd, working_dir, dst_image)
+                copy_image(src_image=src_image, dst_image=dst_image)
+                add_game(
+                    sunshine_apps=sunshine_apps,
+                    name=name,
+                    logfile=f"{short_name}.log",
+                    cmd=cmd,
+                    working_dir=working_dir,
+                    image_path=dst_image
+                )
 
         if not args.dry_run:
             with open(file=args.apps, mode="w") as f:
@@ -358,103 +458,6 @@ def main() -> None:
                                 'and we will automatically detect it IF you use the default installation directory. '
                                 'Use the `--apps` arg to specify the full path of the file if you\'d like to use a '
                                 'custom location.')
-
-
-def copy_image(src_image, dst_image) -> None:
-    """
-    Copies an image from src_image to dst_image if the dst is empty or different
-
-    Parameters
-    ----------
-    src_image: str
-        Source path of the image
-    dst_image: str
-        Destination path of the image
-
-    Returns
-    -------
-    None
-
-    Examples
-    --------
-    >>> copy_image("C:\\Image1.png", "D:\\Image1.png")
-    """
-    # if src_image exists and dst_image does not exist
-    if os.path.isfile(src_image) and not os.path.isfile(dst_image):
-        shutil.copy2(src=src_image, dst=dst_image)  # copy2 preserves metadata
-        print(f'Copied box-art image to: {dst_image}')
-    else:
-        print(f'No box-art image found at: {src_image}')
-
-
-def has_app(sunshine_apps, name) -> bool:
-    """
-    Checks if a given app name is in the sunshine_apps object
-
-    Parameters
-    ----------
-    sunshine_apps: Object
-        Parsed JSON object of the sunshine `apps.json`
-    name: string
-        Name to check for
-
-    Returns
-    -------
-    bool:
-        True if the app is in the sunshine_apps object. Otherwise False
-
-    Examples
-    --------
-    >>> has_app(sunshine_apps_object, "Game Name")
-    False
-    """
-    app_exists = False
-
-    for existing_app in sunshine_apps['apps']:
-        if name == existing_app['name']:
-            app_exists = True
-            print(f'{name} app already exist in Sunshine apps.json, skipping.')
-            break
-
-    return app_exists
-
-
-def add_game(sunshine_apps, name, logfile, cmd, working_dir, image_path) -> None:
-    """
-    Function to add an app to the sunshine_apps object passed in
-
-    Parameters
-    ----------
-    sunshine_apps: Object
-        Parsed JSON object of the sunshine `apps.json`
-    name: str
-        Name of the app
-    logfile: str
-        Logfile name for the app
-    cmd: str
-        Commandline to start the app
-    working_dir: str
-        Working directory for the app
-    image_path: str
-        Path to an image file to display as box-art
-
-    Returns
-    -------
-    None
-
-    Examples
-    --------
-    >>> add_game(sunshine_apps_object, "Game Name", "game.log", "game.exe", "C:\\gamedir", "C:\\gamedir\\image.png")
-    """
-    sunshine_apps['apps'].append(
-        {
-            'name': name,
-            'output': logfile,
-            'cmd': cmd,
-            'working-dir': working_dir,
-            'image-path': image_path
-        }
-    )
 
 
 if __name__ == '__main__':
