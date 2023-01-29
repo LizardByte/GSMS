@@ -272,7 +272,7 @@ def add_game(sunshine_apps: dict, name: str, logfile: str, cmd: str, working_dir
             cmd = f"steam {cmd}"
     # if it's not a URI we check if the command includes the working_directory
     elif not cmd.startswith(working_dir):
-        cmd = os.path.join(working_dir, cmd)  
+        cmd = os.path.join(working_dir, cmd)
 
     data = {
         'name': name,
@@ -280,13 +280,13 @@ def add_game(sunshine_apps: dict, name: str, logfile: str, cmd: str, working_dir
         'working-dir': working_dir,
         'image-path': image_path
     }
-    
+
     # we add the command to the appropriate field
     if detached:
         data['detached'] = [cmd]
     else:
         data['cmd'] = cmd
-    
+
     sunshine_apps['apps'].append(data)
 
 
