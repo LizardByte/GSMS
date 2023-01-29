@@ -157,8 +157,6 @@ def get_win_path(folder_id: str) -> str:
     # Free memory used by pointer
     _CoTaskMemFree(path_pointer)
 
-    print(path)
-
     return path
 
 
