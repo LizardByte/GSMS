@@ -260,11 +260,13 @@ def add_game(sunshine_apps: any, name: str, logfile: str, cmd: str, working_dir:
     while cmd.startswith(os.sep):
         cmd = cmd[1:]
 
+    # we don't need ot keep quotes around the path or working directory
+    working_dir = working_dir.replace('"', "")
     cmd = cmd.replace('"', '')
 
     # steam URI commands need some special treatment
     if cmd.startswith("start steam://"):
-        # make the cmd easily launchable via steam if its a steam URI
+        # make the cmd easily launchable via steam if it's a steam URI
         cmd = cmd.replace('start steam://', 'steam steam://')
 
         sunshine_apps['apps'].append(
@@ -278,7 +280,7 @@ def add_game(sunshine_apps: any, name: str, logfile: str, cmd: str, working_dir:
         )
 
     else:
-        # assemble clean command path if it wasnt a full path yet
+        # assemble clean command path if it wasn't a full path yet
         if not cmd.startswith(working_dir):
             cmd = os.path.join(working_dir, cmd)
 
