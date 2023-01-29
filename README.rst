@@ -72,8 +72,11 @@ OPTIONS
     will be used.
 
 ``--dry_run, -d``
-    If set, the ``apps.json`` file will not be overwritten. Use this flag to preview the changes that would be made
-    without committing them.
+    If set, the ``apps.json`` file will not be overwritten the changes that would be made and box-art images won\'t be copied.
+    Use this flag to preview the changes that would be made without committing them.
+
+``--nv_add_autodetect, -n``
+    If set, GSMS will import the streamable autodetected apps from NVIDIA GFE GameStream.
 
 ``--no_sleep``
     If set, the script will not pause for 10 seconds at the end of the import.

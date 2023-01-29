@@ -29,14 +29,14 @@ OPTIONS
     Specify a custom shortcut directory. If not specified, `%localappdata%/NVIDIA Corporation/Shield Apps` will be used.
 
 --dry_run, -d
-    If set, the `apps.json` file will not be overwritten. Use this flag to preview the changes that would be made
-    without committing them.
+    If set, the `apps.json` file will not be overwritten and box-art images won't be copied. Use this flag to preview
+    the changes that would be made without committing them.
 
 --no_sleep
     If set, the script will not pause for 10 seconds at the end of the import.
 
 --nv_add_autodetect, -n
-    If set, the swcript will add all streamable apps from NVidia GFE's autodetected applications
+    If set, GSMS will import the streamable autodetected apps from NVIDIA GFE GameStream.
 
 Examples
 --------
@@ -164,18 +164,14 @@ def get_win_path(folder_id: str) -> str:
 
 def copy_image(src_image: str, dst_image: str) -> None:
     """
-    Copies an image from src_image to dst_image if the dst is empty or different
+    Copies an image from src_image to dst_image if the dst is empty or different.
 
     Parameters
     ----------
-    src_image: str
-        Source path of the image
-    dst_image: str
-        Destination path of the image
-
-    Returns
-    -------
-    None
+    src_image : str
+        Source path of the image.
+    dst_image : str
+        Destination path of the image.
 
     Examples
     --------
@@ -189,25 +185,25 @@ def copy_image(src_image: str, dst_image: str) -> None:
         print(f'No box-art image found at: {src_image}')
 
 
-def has_app(sunshine_apps: any, name: str) -> bool:
+def has_app(sunshine_apps: dict, name: str) -> bool:
     """
-    Checks if a given app name is in the sunshine_apps object
+    Checks if a given app name is in the sunshine_apps object.
 
     Parameters
     ----------
-    sunshine_apps: any
-        Parsed JSON object of the sunshine `apps.json`
-    name: str
-        Name to check for
+    sunshine_apps : dict
+        The parsed JSON dict of the ``apps.json``.
+    name : str
+        Name to check for.
 
     Returns
     -------
-    bool:
-        True if the app is in the sunshine_apps object. Otherwise False
+    bool
+        True if the app is in the sunshine_apps object. Otherwise False.
 
     Examples
     --------
-    >>> has_app(any, "Game Name")
+    >>> has_app({}, "Game Name")
     False
     """
     app_exists = False
@@ -221,32 +217,28 @@ def has_app(sunshine_apps: any, name: str) -> bool:
     return app_exists
 
 
-def add_game(sunshine_apps: any, name: str, logfile: str, cmd: str, working_dir: str, image_path: str) -> None:
+def add_game(sunshine_apps: dict, name: str, logfile: str, cmd: str, working_dir: str, image_path: str) -> None:
     """
-    Function to add an app to the sunshine_apps object passed in
+    Function to add an app to the sunshine_apps object passed in.
 
     Parameters
     ----------
-    sunshine_apps: any
-        Parsed JSON object of the sunshine `apps.json`
-    name: str
-        Name of the app
-    logfile: str
-        Logfile name for the app
-    cmd: str
-        Commandline to start the app
-    working_dir: str
-        Working directory for the app
-    image_path: str
-        Path to an image file to display as box-art
-
-    Returns
-    -------
-    None
+    sunshine_apps : dict
+        The parsed JSON dict of the ``apps.json``.
+    name : str
+        Name of the app.
+    logfile : str
+        Logfile name for the app.
+    cmd : str
+        Commandline to start the app.
+    working_dir : str
+        Working directory for the app.
+    image_path : str
+        Path to an image file to display as box-art.
 
     Examples
     --------
-    >>> add_game(any, "Game Name", "game.log", "game.exe", "C:\\gamedir", "C:\\gamedir\\image.png")
+    >>> add_game({}, "Game Name", "game.log", "game.exe", "C:\\gamedir", "C:\\gamedir\\image.png")
     """
 
     working_dir = known_path_to_absolute(working_dir)
@@ -264,50 +256,53 @@ def add_game(sunshine_apps: any, name: str, logfile: str, cmd: str, working_dir:
     working_dir = working_dir.replace('"', "")
     cmd = cmd.replace('"', '')
 
-    # steam URI commands need some special treatment
-    if cmd.startswith("start steam://"):
-        # make the cmd easily launchable via steam if it's a steam URI
-        cmd = cmd.replace('start steam://', 'steam steam://')
+    detached = False
 
-        sunshine_apps['apps'].append(
-            {
-                'name': name,
-                'output': logfile,
-                'detached': [cmd],
-                'working-dir': working_dir,
-                'image-path': image_path
-            }
-        )
+    # cmd begins with "start", this must be a detached command
+    if cmd.lower().startswith("start"):
+        detached = True
+        cmd = cmd[5:].strip()
 
+    # command is a URI, this must be a detached command
+    if '://' in cmd:
+        detached = True
+
+        # if the URI uses the steam protocol we prepend the steam executeable
+        if 'steam://' in cmd:
+            cmd = f"steam {cmd}"
+    # if it's not a URI we check if the command includes the working_directory
+    elif not cmd.startswith(working_dir):
+        cmd = os.path.join(working_dir, cmd)  
+
+    data = {
+        'name': name,
+        'output': logfile,
+        'working-dir': working_dir,
+        'image-path': image_path
+    }
+    
+    # we add the command to the appropriate field
+    if detached:
+        data['detached'] = [cmd]
     else:
-        # assemble clean command path if it wasn't a full path yet
-        if not cmd.startswith(working_dir):
-            cmd = os.path.join(working_dir, cmd)
-
-        sunshine_apps['apps'].append(
-            {
-                'name': name,
-                'output': logfile,
-                'cmd': cmd,
-                'working-dir': working_dir,
-                'image-path': image_path
-            }
-        )
+        data['cmd'] = cmd
+    
+    sunshine_apps['apps'].append(data)
 
 
 def known_path_to_absolute(path: str) -> str:
     """
-    Function to convert paths containing windows known path UUIDs to absolute paths
+    Function to convert paths containing windows known path UUIDs to absolute paths.
 
     Parameters
     ----------
-    path: str
-        Path that may contain windows known paths
+    path : str
+        Path that may contain windows known paths.
 
     Returns
     -------
     str
-        Path with all windows known UUIDs to absolute paths
+        Path with all windows known UUIDs to absolute paths.
 
     Examples
     --------
@@ -373,7 +368,7 @@ def main() -> None:
     Raises
     ------
     FileNotFoundError
-        When the `apps.json` file specified or the default `apps.json` file is not found.
+        When the ``apps.json`` file specified or the default ``apps.json`` file is not found.
 
     Examples
     --------
@@ -399,12 +394,12 @@ def main() -> None:
                         default=os.path.join(os.environ['localappdata'], 'NVIDIA Corporation', 'Shield Apps')
                         )
     parser.add_argument('--dry_run', '-d', action='store_true',
-                        help='If set, the `apps.json` file will not be overwritten. Use this flag to preview the '
-                             'changes that would be made without committing them.')
+                        help='If set, the `apps.json` file will not be overwritten and box-art images won\'t be copied.'
+                             'Use this flag to preview the changes that would be made without committing them.')
     parser.add_argument('--no_sleep', action='store_true',
                         help='If set, the script will not pause for 10 seconds at the end of the import.')
     parser.add_argument('--nv_add_autodetect', '-n', action='store_true',
-                        help='If set, GSMS will import the autodetected apps from NVIDIA Gamestream.')
+                        help='If set, GSMS will import the streamable autodetected apps from NVIDIA GFE GameStream.')
 
     args = parser.parse_args()
 
@@ -433,7 +428,7 @@ def main() -> None:
             if gs_app.lower().endswith('.lnk'):
                 name = gs_app.rsplit('.', 1)[0]  # split the lnk name by the extension separator
 
-                if has_app(sunshine_apps, name):
+                if has_app(sunshine_apps=sunshine_apps, name=name):
                     continue
 
                 count += 1
@@ -448,7 +443,8 @@ def main() -> None:
                 src_image = os.path.join(args.shortcut_dir, 'StreamingAssets', name, 'box-art.png')
                 dst_image = os.path.join(args.image_path, f'{name}.png')
 
-                copy_image(src_image=src_image, dst_image=dst_image)
+                if not args.dry_run:
+                    copy_image(src_image=src_image, dst_image=dst_image)
 
                 add_game(
                     sunshine_apps=sunshine_apps,
@@ -483,7 +479,7 @@ def main() -> None:
                     continue
 
                 # If we already have an App with the EXACT same name we skip it
-                if has_app(sunshine_apps, name):
+                if has_app(sunshine_apps=sunshine_apps, name=name):
                     continue
 
                 # Increae count here to exclude some stuff
@@ -505,7 +501,10 @@ def main() -> None:
                     f"{short_name}-box-art.png"
                 )
                 dst_image = os.path.join(args.image_path, f'{short_name}.png')
-                copy_image(src_image=src_image, dst_image=dst_image)
+
+                if not args.dry_run:
+                    copy_image(src_image=src_image, dst_image=dst_image)
+
                 add_game(
                     sunshine_apps=sunshine_apps,
                     name=name,
