@@ -248,47 +248,84 @@ def add_game(sunshine_apps: any, name: str, logfile: str, cmd: str, working_dir:
     --------
     >>> add_game(any, "Game Name", "game.log", "game.exe", "C:\\gamedir", "C:\\gamedir\\image.png")
     """
+
+    working_dir = known_path_to_absolute(working_dir)
+    cmd = known_path_to_absolute(cmd)
+
     # remove final path separator but only if it exists
     while working_dir.endswith(os.sep):
         working_dir = working_dir[:-1]
 
-    # prepare regex to get folder UUIDs which can only be at the start exactly 1 time
-    regex = re.compile(
-        r"^::(\{[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}}){1}\\"
-    )
-
-    working_dir_result = regex.findall(working_dir)
-
-    if len(working_dir_result) == 1:
-        working_dir = working_dir.replace(
-            f"::{working_dir_result[0]}",
-            get_win_path(working_dir_result[0])
-        )
-
-    cmd_result = regex.findall(cmd)
-
-    if len(cmd_result) == 1:
-        cmd = cmd.replace(
-            f"::{cmd_result[0]}",
-            get_win_path(cmd_result[0])
-        )
-
-    # replace any remains of the working directory in the command
-    cmd = cmd.replace(working_dir, '')
-
-    # remove preceding separator on the command
+    # remove preceding separator on the command if it exists
     while cmd.startswith(os.sep):
         cmd = cmd[1:]
 
-    sunshine_apps['apps'].append(
-        {
-            'name': name,
-            'output': logfile,
-            'cmd': cmd,
-            'working-dir': working_dir,
-            'image-path': image_path
-        }
+    cmd = cmd.replace('"', '')
+
+    # steam URI commands need some special treatment
+    if cmd.startswith("start steam://"):
+        # make the cmd easily launchable via steam if its a steam URI
+        cmd = cmd.replace('start steam://', 'steam steam://')
+
+        sunshine_apps['apps'].append(
+            {
+                'name': name,
+                'output': logfile,
+                'detached': [cmd],
+                'working-dir': working_dir,
+                'image-path': image_path
+            }
+        )
+
+    else:
+        # assemble clean command path if it wasnt a full path yet
+        if not cmd.startswith(working_dir):
+            cmd = os.path.join(working_dir, cmd)
+
+        sunshine_apps['apps'].append(
+            {
+                'name': name,
+                'output': logfile,
+                'cmd': cmd,
+                'working-dir': working_dir,
+                'image-path': image_path
+            }
+        )
+
+
+def known_path_to_absolute(path: str) -> str:
+    """
+    Function to convert paths containing windows known path UUIDs to absolute paths
+
+    Parameters
+    ----------
+    path: str
+        Path that may contain windows known paths
+
+    Returns
+    -------
+    str
+        Path with all windows known UUIDs to absolute paths
+
+    Examples
+    --------
+    >>> known_path_to_absolute('::{62AB5D82-FDC1-4DC3-A9DD-070D1D495D97}')
+    C:\\ProgramData
+    """
+    # prepare regex to get folder UUIDs which can only be at the start exactly 1 time with 2 preceding colons
+    regex = re.compile(
+        r"^::(\{[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}})\\"
     )
+
+    path_result = regex.findall(path)
+
+    if len(path_result) == 1:
+        path = path.replace(
+            f"::{path_result[0]}",
+            get_win_path(path_result[0])
+        )
+
+    return path
 
 
 def stopwatch(message: str, sec: int) -> None:
@@ -393,6 +430,12 @@ def main() -> None:
         for gs_app in gs_apps:
             if gs_app.lower().endswith('.lnk'):
                 name = gs_app.rsplit('.', 1)[0]  # split the lnk name by the extension separator
+
+                if has_app(sunshine_apps, name):
+                    continue
+
+                count += 1
+
                 shortcut = pylnk3.parse(lnk=os.path.join(args.shortcut_dir, gs_app))
                 shortcut.work_dir = "" if shortcut.work_dir is None else shortcut.work_dir
                 print(f'Found gamestream app: {name}')
@@ -405,17 +448,12 @@ def main() -> None:
 
                 copy_image(src_image=src_image, dst_image=dst_image)
 
-                if has_app(sunshine_apps, name):
-                    continue
-
-                count += 1
-
                 add_game(
                     sunshine_apps=sunshine_apps,
                     name=name,
                     logfile=f"{name.lower().replace(' ', '_')}.log",
-                    cmd=shortcut.path.replace(shortcut.work_dir, ''),
-                    working_dir=shortcut.work_dir.rsplit('\\', 1)[0],
+                    cmd=shortcut.path,
+                    working_dir=shortcut.work_dir,
                     image_path=dst_image
                 )
 
