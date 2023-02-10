@@ -3,23 +3,24 @@ Overview
 
 About
 -----
-GSMS is a migration tool that allows users to import their custom apps and games from Nvidia Gamestream to
-`Sunshine <https://github.com/LizardByte/Sunshine>`_. Note that Nvidia Gamestream support will end in February 2023,
-so users who rely on Gamestream may want to consider migrating their library to Sunshine. This program updates the
+GSMS is a migration tool that allows users to import their custom apps and games from Nvidia GameStream to
+`Sunshine <https://github.com/LizardByte/Sunshine>`_. Note that Nvidia GameStream support has ended in February 2023,
+so users who relied on GameStream may want to consider migrating their library to Sunshine. This program updates the
 `apps.json` file for Sunshine and copies the corresponding box art images to a specified directory. It reads shortcut
-files (.lnk) from the default Gamestream installation location and adds them to Sunshine as new apps. If an app with
+files (.lnk) from the default GameStream installation location. Additionally it can add games that were automatically
+detected by Nvidia GameStream. The found games and applications are added to Sunshine as new apps. If an app with
 the same name already exists in Sunshine, it will be skipped.
 
-This program is intended for users who want to migrate their Gamestream library to Sunshine and have their custom apps
+This program is intended for users who want to migrate their GameStream library to Sunshine and have their custom apps
 and games available in Sunshine. It can save users the time and effort of manually adding each app to Sunshine and
-finding and copying the corresponding box art images. The Gamestraem library and box-art images will not be modified.
+finding and copying the corresponding box art images. The GameStream library and box-art images will not be modified.
 
-To use this script, users will need to have both Gamestream and Sunshine installed on their system and have a basic
+To use this script, users will need to have both GameStream and Sunshine installed on their system and have a basic
 understanding of using the command line. The script can be run with a variety of options to customize its behavior,
 such as specifying the `apps.json` file to update, the directory where to copy box art images, and whether to preview
 the changes without actually updating the `apps.json` file.
 
-As an alternative option to migrating custom Gamestream apps, you may also migrate any directory containing
+As an alternative option to migrating custom GameStream apps, you may also migrate any directory containing
 ``.lnk`` (shortcut) files. Below is the preferred directory structure of a custom directory. Cover images
 (``box-art.png``) is optional.
 
@@ -72,22 +73,25 @@ OPTIONS
     will be used.
 
 ``--dry_run, -d``
-    If set, the ``apps.json`` file will not be overwritten. Use this flag to preview the changes that would be made
-    without committing them.
+    If set, the `apps.json` file will not be overwritten and box-art images won't be copied. Use this flag to preview
+    the changes that would be made without committing them.
 
 ``--no_sleep``
     If set, the script will not pause for 10 seconds at the end of the import.
 
+``--nv_add_autodetect, -n``
+    If set, the script will add all streamable apps from Nvidia GameStream's automatically detected applications.
+
 Examples
 ^^^^^^^^
 
-To migrate all Gamestream apps to Sunshine and copy box art images to the default directory:
+To migrate all GameStream apps to Sunshine and copy box art images to the default directory:
 
 .. code-block:: batch
 
    gsms.exe
 
-To migrate all Gamestream apps to Sunshine and copy box art images to a custom directory:
+To migrate all GameStream apps to Sunshine and copy box art images to a custom directory:
 
 .. code-block:: batch
 
