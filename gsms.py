@@ -2,7 +2,7 @@
 """
 gsms.py
 
-A migration tool for Nvidia Gamestream to Sunshine.
+A migration tool for Nvidia GameStream to Sunshine.
 
 This script updates the `apps.json` file for Sunshine and copies box art images to a specified directory. It reads
 shortcut files (.lnk) from a specified directory and adds them to Sunshine as new apps. If an
@@ -36,16 +36,16 @@ OPTIONS
     If set, the script will not pause for 10 seconds at the end of the import.
 
 --nv_add_autodetect, -n
-    If set, GSMS will import the streamable autodetected apps from NVIDIA GFE GameStream.
+    If set, the script will add all streamable apps from Nvidia GameStream's automatically detected applications.
 
 Examples
 --------
 
-To migrate all Gamestream apps to Sunshine and copy box art images to the default directory:
+To migrate all GameStream apps to Sunshine and copy box art images to the default directory:
 
 $ python gsms.py
 
-To migrate all Gamestream apps to Sunshine and copy box art images to a custom directory:
+To migrate all GameStream apps to Sunshine and copy box art images to a custom directory:
 
 $ python gsms.py --image_path /path/to/custom/dir
 
@@ -162,7 +162,7 @@ def get_win_path(folder_id: str) -> str:
 
 def copy_image(src_image: str, dst_image: str) -> None:
     """
-    Copies an image from src_image to dst_image if the dst is empty or different.
+    Copy an image from `src_image` to `dst_image` if the destination image does not exist.
 
     Parameters
     ----------
@@ -173,7 +173,7 @@ def copy_image(src_image: str, dst_image: str) -> None:
 
     Examples
     --------
-    >>> copy_image("C:\\Image1.png", "D:\\Image1.png")
+    >>> copy_image(src_image="C:\\Image1.png", dst_image="D:\\Image1.png")
     """
     # if src_image exists and dst_image does not exist
     if os.path.isfile(src_image) and not os.path.isfile(dst_image):
@@ -190,18 +190,18 @@ def has_app(sunshine_apps: dict, name: str) -> bool:
     Parameters
     ----------
     sunshine_apps : dict
-        The parsed JSON dict of the ``apps.json``.
+        Dictionary object of the sunshine `apps.json`.
     name : str
         Name to check for.
 
     Returns
     -------
     bool
-        True if the app is in the sunshine_apps object. Otherwise False.
+        True if the app is in the sunshine_apps object, otherwise False.
 
     Examples
     --------
-    >>> has_app({}, "Game Name")
+    >>> has_app(sunshine_apps={}, name="Game Name")
     False
     """
     app_exists = False
@@ -217,12 +217,12 @@ def has_app(sunshine_apps: dict, name: str) -> bool:
 
 def add_game(sunshine_apps: dict, name: str, logfile: str, cmd: str, working_dir: str, image_path: str) -> None:
     """
-    Function to add an app to the sunshine_apps object passed in.
+    Add an app to the sunshine_apps object.
 
     Parameters
     ----------
     sunshine_apps : dict
-        The parsed JSON dict of the ``apps.json``.
+        Dictionary object of the sunshine `apps.json`.
     name : str
         Name of the app.
     logfile : str
@@ -236,11 +236,11 @@ def add_game(sunshine_apps: dict, name: str, logfile: str, cmd: str, working_dir
 
     Examples
     --------
-    >>> add_game({}, "Game Name", "game.log", "game.exe", "C:\\gamedir", "C:\\gamedir\\image.png")
+    >>> add_game(sunshine_apps={}, name="Game Name", logfile="game.log", cmd="game.exe",
+    >>>          working_dir="C:\\game_dir", image_path="C:\\game_dir\\image.png")
     """
-
-    working_dir = known_path_to_absolute(working_dir)
-    cmd = known_path_to_absolute(cmd)
+    working_dir = known_path_to_absolute(path=working_dir)
+    cmd = known_path_to_absolute(path=cmd)
 
     # remove final path separator but only if it exists
     while working_dir.endswith(os.sep):
@@ -265,7 +265,7 @@ def add_game(sunshine_apps: dict, name: str, logfile: str, cmd: str, working_dir
     if '://' in cmd:
         detached = True
 
-        # if the URI uses the steam protocol we prepend the steam executeable
+        # if the URI uses the steam protocol we prepend the steam executable
         if 'steam://' in cmd:
             cmd = f"steam {cmd}"
     # if it's not a URI we check if the command includes the working_directory
@@ -290,21 +290,21 @@ def add_game(sunshine_apps: dict, name: str, logfile: str, cmd: str, working_dir
 
 def known_path_to_absolute(path: str) -> str:
     """
-    Function to convert paths containing windows known path UUIDs to absolute paths.
+    Convert paths containing Windows known path UUID to absolute path.
 
     Parameters
     ----------
     path : str
-        Path that may contain windows known paths.
+        Path that may contain Windows UUID.
 
     Returns
     -------
     str
-        Path with all windows known UUIDs to absolute paths.
+        The absolute path.
 
     Examples
     --------
-    >>> known_path_to_absolute('::{62AB5D82-FDC1-4DC3-A9DD-070D1D495D97}')
+    >>> known_path_to_absolute(path='::{62AB5D82-FDC1-4DC3-A9DD-070D1D495D97}')
     C:\\ProgramData
     """
     # prepare regex to get folder UUIDs which can only be at the start exactly 1 time with 2 preceding colons
@@ -317,7 +317,7 @@ def known_path_to_absolute(path: str) -> str:
     if len(path_result) == 1:
         path = path.replace(
             f"::{path_result[0]}",
-            get_win_path(path_result[0])
+            get_win_path(folder_id=path_result[0])
         )
 
     return path
@@ -333,10 +333,6 @@ def stopwatch(message: str, sec: int) -> None:
         Prefix message to display before the countdown timer.
     sec : int
         Time, in seconds, to countdown from.
-
-    Returns
-    -------
-    None
 
     Examples
     --------
@@ -359,10 +355,6 @@ def main() -> None:
     Main application entrypoint. Migrates Nvidia Gamestream apps to Sunshine by updating the `apps.json` file and
     copying box art images to a specified directory.
 
-    Returns
-    -------
-    None
-
     Raises
     ------
     FileNotFoundError
@@ -374,7 +366,7 @@ def main() -> None:
     ...
     """
     # Set up and gather command line arguments
-    parser = argparse.ArgumentParser(description='GSMS is a migration tool for Nvidia Gamestream to Sunshine.')
+    parser = argparse.ArgumentParser(description='GSMS is a migration tool for Nvidia GameStream to Sunshine.')
 
     parser.add_argument('--apps', '-a',
                         help='Specify the sunshine `apps.json` file to update, otherwise we will attempt to use the '
@@ -397,7 +389,7 @@ def main() -> None:
     parser.add_argument('--no_sleep', action='store_true',
                         help='If set, the script will not pause for 10 seconds at the end of the import.')
     parser.add_argument('--nv_add_autodetect', '-n', action='store_true',
-                        help='If set, GSMS will import the streamable autodetected apps from NVIDIA GFE GameStream.')
+                        help='If set, GSMS will import the automatically detected apps from Nvidia GameStream.')
 
     args = parser.parse_args()
 
@@ -406,7 +398,7 @@ def main() -> None:
 
     # create some helper path variables for later usage
     nvidia_base_dir = os.path.join(os.environ['localappdata'], "NVIDIA", "NvBackend")
-    # Path for the main application xml NVidia GFE uses
+    # Path for the main application xml Nvidia GFE uses
     nvidia_autodetect_dir = os.path.join(nvidia_base_dir, "journalBS.main.xml")
     # Base folder for the box-art
     nvidia_images_base_dir = os.path.join(nvidia_base_dir, "StreamingAssetsData")
@@ -433,7 +425,7 @@ def main() -> None:
 
                 shortcut = pylnk3.parse(lnk=os.path.join(args.shortcut_dir, gs_app))
                 shortcut.work_dir = "" if shortcut.work_dir is None else shortcut.work_dir
-                print(f'Found gamestream app: {name}')
+                print(f'Found GameStream app: {name}')
                 print(f'working-dir: {shortcut.work_dir}')
                 print(f'path: {shortcut.path}')
 
@@ -480,15 +472,15 @@ def main() -> None:
                 if has_app(sunshine_apps=sunshine_apps, name=name):
                     continue
 
-                # Increae count here to exclude some stuff
+                # Increase count here to exclude some stuff
                 count += 1
 
                 cmd = application.find("StreamingCommandLine").text
                 working_dir = application.find("InstallDirectory").text
-                # NVidia's short_name is a pre-shortened and filesystem safe name for the game
+                # Nvidia's short_name is a pre-shortened and filesystem safe name for the game
                 short_name = application.find("ShortName").text
 
-                print(f'Found gamestream app: {name}')
+                print(f'Found GameStream app: {name}')
                 print(f'working-dir: {working_dir}')
                 print(f'path: {cmd}')
 
@@ -516,7 +508,7 @@ def main() -> None:
             with open(file=args.apps, mode="w") as f:
                 json.dump(obj=sunshine_apps, indent=4, fp=f)
         print(json.dumps(obj=sunshine_apps, indent=4))
-        print('Completed importing Nvidia gamestream games.')
+        print('Completed importing Nvidia GameStream games.')
         print(f'Added {count} apps to Sunshine.')
         if not args.no_sleep:
             stopwatch(message='Exiting in: ', sec=10)
