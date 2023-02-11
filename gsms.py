@@ -139,7 +139,9 @@ def get_win_path(folder_id: str) -> str:
     Examples
     --------
     >>> get_win_path(folder_id="{B4BFCC3A-DB2C-424C-B029-7FE99A87C641}")
-    ...
+    C:\\Users\\...\\Desktop
+    >>> get_win_path(folder_id="B4BFCC3A-DB2C-424C-B029-7FE99A87C641")
+    C:\\Users\\...\\Desktop
     """
     # Get actual Windows folder id (fid)
     fid = WindowsGUIDWrapper(unique_id=UUID(folder_id))
@@ -309,7 +311,7 @@ def known_path_to_absolute(path: str) -> str:
     """
     # prepare regex to get folder UUIDs which can only be at the start exactly 1 time with 2 preceding colons
     regex = re.compile(
-        r"^::(\{[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}})\\"
+        r"^::(\{[\da-fA-F]{8}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{4}-[\da-fA-F]{12}})"
     )
 
     path_result = regex.findall(path)
