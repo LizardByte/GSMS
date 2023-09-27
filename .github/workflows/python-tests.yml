@@ -24,5 +24,17 @@ jobs:
           python -m pip install -r requirements-dev.txt
 
       - name: Test with pytest
+        id: test
+        shell: bash
         run: |
-          python -m pytest -v
+          python -m pytest \
+            -rxXs \
+            --tb=native \
+            --verbose \
+            --cov=gsms \
+            tests
+
+      - name: Upload coverage
+        # any except cancelled or skipped
+        if: always() && (steps.test.outcome == 'success' || steps.test.outcome == 'failure')
+        uses: codecov/codecov-action@v3
