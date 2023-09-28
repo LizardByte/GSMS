@@ -7,7 +7,7 @@ import uuid
 import pytest
 
 # local imports
-import gsms
+from gsms import gsms
 
 
 def test_windows_guid_wrapper():

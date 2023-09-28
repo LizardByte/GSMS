@@ -14,7 +14,7 @@ import PyInstaller.__main__
 def build():
     """Sets arguments for pyinstaller, creates spec, and builds binaries."""
     pyinstaller_args = [
-        'gsms.py',
+        'gsms/gsms.py',
         '--onefile',
         '--noconfirm',
         '--paths=./',
