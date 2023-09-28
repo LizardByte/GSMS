@@ -128,3 +128,7 @@ Stats
 .. image:: https://img.shields.io/github/stars/lizardbyte/gsms?logo=github&style=for-the-badge
    :alt: GitHub stars
    :target: https://github.com/LizardByte/GSMS
+
+.. image:: https://img.shields.io/codecov/c/gh/LizardByte/GSMS?token=IC678AQFBI&style=for-the-badge&logo=codecov&label=codecov
+   :alt: Codecov
+   :target: https://codecov.io/gh/LizardByte/GSMS

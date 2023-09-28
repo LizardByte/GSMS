@@ -16,7 +16,7 @@ jobs:
     steps:
       - name: Checkout
         if: ${{ github.ref == 'refs/heads/master' || github.base_ref == 'master' }}
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Verify Changelog
         id: verify_changelog
@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Install Python
         uses: actions/setup-python@v4
