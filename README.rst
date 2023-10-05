@@ -108,7 +108,7 @@ Integrations
 
 .. image:: https://img.shields.io/github/actions/workflow/status/lizardbyte/gsms/CI.yml?branch=master&label=CI%20build&logo=github&style=for-the-badge
    :alt: GitHub Workflow Status (CI)
-   :target: https://github.com/LizardByte/GSMSe/actions/workflows/CI.yml?query=branch%3Amaster
+   :target: https://github.com/LizardByte/GSMS/actions/workflows/CI.yml?query=branch%3Amaster
 
 Support
 ---------
