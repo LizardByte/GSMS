@@ -35,7 +35,7 @@ jobs:
 
       - name: Setup Release
         id: setup_release
-        uses: LizardByte/setup-release-action@v2023.10.22-c3791c6
+        uses: LizardByte/setup-release-action@v2023.1128.1400
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
@@ -74,7 +74,7 @@ jobs:
 
       - name: Create/Update GitHub Release
         if: ${{ needs.setup_release.outputs.publish_release == 'true' }}
-        uses: LizardByte/create-release-action@v2023.10.22-57d76be
+        uses: LizardByte/create-release-action@v2023.1128.2625
         with:
           allowUpdates: false
           artifacts: "${{ github.workspace }}/dist/gsms.exe"
