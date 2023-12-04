@@ -78,9 +78,9 @@ jobs:
         with:
           allowUpdates: false
           artifacts: "${{ github.workspace }}/dist/gsms.exe"
-          body: ${{ needs.setup_release.outputs.release_body }}
+          body: ''
           discussionCategory: announcements
-          generateReleaseNotes: ${{ needs.setup_release.outputs.release_generate_release_notes }}
+          generateReleaseNotes: true
           name: ${{ needs.setup_release.outputs.release_tag }}
           prerelease: ${{ needs.setup_release.outputs.publish_pre_release }}
           tag: ${{ needs.setup_release.outputs.release_tag }}
