@@ -483,29 +483,27 @@ def main() -> None:
                 print(f'working-dir: {working_dir}')
                 print(f'path: {cmd}')
 
-                if short_name in gfe_apps["metadata"]:
-                    src_image = os.path.join(
-                        nvidia_images_base_dir,
-                        short_name,
-                        gfe_apps["metadata"][short_name]["c"],
-                        f"{short_name}-box-art.png"
-                    )
-                    dst_image = os.path.join(args.image_path, f'{short_name}.png')
+                src_image = os.path.join(
+                    nvidia_images_base_dir,
+                    short_name,
+                    gfe_apps["metadata"][short_name]["c"],
+                    f"{short_name}-box-art.png"
+                )
+                dst_image = os.path.join(args.image_path, f'{short_name}.png')
 
-                    if not args.dry_run:
-                        copy_image(src_image=src_image, dst_image=dst_image)
+                if not args.dry_run:
+                    copy_image(src_image=src_image, dst_image=dst_image)
 
-                    add_game(
-                        sunshine_apps=sunshine_apps,
-                        name=name,
-                        logfile=f"{short_name}.log",
-                        cmd=cmd,
-                        working_dir=working_dir,
-                        image_path=dst_image
-                    )
+                add_game(
+                    sunshine_apps=sunshine_apps,
+                    name=name,
+                    logfile=f"{short_name}.log",
+                    cmd=cmd,
+                    working_dir=working_dir,
+                    image_path=dst_image
+                )
 
-                    # Increase count here to exclude some stuff
-                    count += 1
+                count += 1
 
         if not args.dry_run:
             with open(file=args.apps, mode="w") as f:
