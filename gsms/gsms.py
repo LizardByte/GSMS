@@ -471,13 +471,13 @@ def main() -> None:
                 if has_app(sunshine_apps=sunshine_apps, name=name):
                     continue
 
-                cmd = application.find("StreamingCommandLine").text
-                if not cmd or short_name not in gfe_apps["metadata"]:
-                    continue
-
                 working_dir = application.find("InstallDirectory").text
                 # Nvidia's short_name is a pre-shortened and filesystem safe name for the game
                 short_name = application.find("ShortName").text
+
+                cmd = application.find("StreamingCommandLine").text
+                if not cmd or short_name not in gfe_apps["metadata"]:
+                    continue
 
                 print(f'Found GameStream app: {name}')
                 print(f'working-dir: {working_dir}')
