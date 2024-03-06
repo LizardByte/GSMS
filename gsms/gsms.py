@@ -472,8 +472,7 @@ def main() -> None:
                     continue
 
                 cmd = application.find("StreamingCommandLine").text
-                if cmd is None:
-                    print(application.find("DisplayName").text, 'has no streaming command line. Skipping')
+                if not cmd or short_name not in gfe_apps["metadata"]:
                     continue
 
                 working_dir = application.find("InstallDirectory").text
