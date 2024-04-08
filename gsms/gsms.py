@@ -475,7 +475,7 @@ def main() -> None:
                 working_dir = application.find("InstallDirectory").text
                 # Nvidia's short_name is a pre-shortened and filesystem safe name for the game
                 short_name = application.find("ShortName").text
-                
+
                 if not cmd or short_name not in gfe_apps["metadata"]:
                     continue
 
