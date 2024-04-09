@@ -403,7 +403,7 @@ def main() -> None:
     # Path for the main application xml Nvidia GFE uses
     nvidia_autodetect_dir = os.path.join(nvidia_base_dir, "journalBS.main.xml")
     # Base folder for the box-art
-    nvidia_images_base_dir = os.path.join(nvidia_base_dir, "StreamingAssetsData")
+    nvidia_images_base_dir = os.path.join(nvidia_base_dir, "VisualOPSData")
 
     count = 0
     if os.path.isfile(args.apps):
@@ -460,9 +460,6 @@ def main() -> None:
 
             # Loop through all applications in the 'Application' parent element
             for application in applications_root:
-                # If GFE GS marked an app as not streaming supported we skip it
-                if application.find("IsStreamingSupported").text == "0":
-                    continue
 
                 name = application.find("DisplayName").text
 
@@ -474,13 +471,13 @@ def main() -> None:
                 if has_app(sunshine_apps=sunshine_apps, name=name):
                     continue
 
-                # Increase count here to exclude some stuff
-                count += 1
-
                 cmd = application.find("StreamingCommandLine").text
                 working_dir = application.find("InstallDirectory").text
                 # Nvidia's short_name is a pre-shortened and filesystem safe name for the game
                 short_name = application.find("ShortName").text
+
+                if not cmd or short_name not in gfe_apps["metadata"]:
+                    continue
 
                 print(f'Found GameStream app: {name}')
                 print(f'working-dir: {working_dir}')
@@ -505,6 +502,8 @@ def main() -> None:
                     working_dir=working_dir,
                     image_path=dst_image
                 )
+
+                count += 1
 
         if not args.dry_run:
             with open(file=args.apps, mode="w") as f:
