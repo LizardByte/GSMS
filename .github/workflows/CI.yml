@@ -63,6 +63,26 @@ jobs:
         run: |
           python -u ./scripts/build.py
 
+      - name: Test with pytest
+        id: test
+        shell: bash
+        run: |
+          python -m pytest \
+            -rxXs \
+            --tb=native \
+            --verbose \
+            --cov=gsms \
+            tests
+
+      - name: Upload coverage
+        # any except cancelled or skipped
+        if: always() && (steps.test.outcome == 'success' || steps.test.outcome == 'failure')
+        uses: codecov/codecov-action@v4
+        with:
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          verbose: true
+
       - name: Upload Artifacts
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
         uses: actions/upload-artifact@v4
