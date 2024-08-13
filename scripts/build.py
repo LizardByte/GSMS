@@ -25,10 +25,8 @@ def build():
         pyinstaller_args.append('--console')
 
         # fix args for windows
-        arg_count = 0
-        for arg in pyinstaller_args:
-            pyinstaller_args[arg_count] = arg.replace(':', ';')
-            arg_count += 1
+        for index, arg in enumerate(pyinstaller_args):
+            pyinstaller_args[index] = arg.replace(':', ';')
 
     # no point in having macos/linux versions for this project
 
