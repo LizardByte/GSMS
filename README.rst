@@ -3,6 +3,10 @@ Overview
 
 About
 -----
+
+.. attention:: This project is archived since NVIDIA GeForce Experience is now end-of-life. GSMS is not planning to
+   support the new NVIDIA app.
+
 GSMS is a migration tool that allows users to import their custom apps and games from Nvidia GameStream to
 `Sunshine <https://github.com/LizardByte/Sunshine>`_. Note that Nvidia GameStream support has ended in February 2023,
 so users who relied on GameStream may want to consider migrating their library to Sunshine. This program updates the
@@ -111,7 +115,7 @@ Integrations
    :target: https://github.com/LizardByte/GSMS/actions/workflows/CI.yml?query=branch%3Amaster
 
 Support
----------
+-------
 
 Our support methods are listed in our
 `LizardByte Docs <https://lizardbyte.readthedocs.io/en/latest/about/support.html>`_.
@@ -124,7 +128,7 @@ Downloads
    :target: https://github.com/LizardByte/GSMS/releases/latest
 
 Stats
-------
+-----
 .. image:: https://img.shields.io/github/stars/lizardbyte/gsms?logo=github&style=for-the-badge
    :alt: GitHub stars
    :target: https://github.com/LizardByte/GSMS
